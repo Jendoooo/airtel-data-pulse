@@ -1,7 +1,7 @@
 {
   "name": "airtel-data-tracker",
   "version": "1.0.0",
-  "description": "Airtel NG Data Usage Dashboard - pulls SMS from router",
+  "description": "Local-first Airtel and MTN router usage dashboard with a Chrome extension",
   "main": "server.js",
   "scripts": {
     "dev": "node server.js",

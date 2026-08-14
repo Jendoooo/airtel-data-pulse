@@ -5,7 +5,6 @@
 let usageData = [];
 let currentRange = 7;
 let routerStatus = null;
-let currentUsageResult = null;
 let sourceMessages = [];
 let tableFilter = '';
 let tableSort = 'recent';
@@ -269,7 +268,6 @@ async function fetchUsageData(settingsOverride = null) {
     }
 
     usageData = result.data;
-    currentUsageResult = result;
     sourceMessages = Array.isArray(result.messages) ? result.messages : [];
     routerStatus = routerStatusResult && routerStatusResult.success ? routerStatusResult.data : null;
     setProviderBrand(result.providerKey || result.provider);
@@ -286,10 +284,10 @@ async function fetchUsageData(settingsOverride = null) {
       cacheNotice.classList.add('hidden');
     } else {
       status.classList.add('connected');
-      status.querySelector('span').textContent = result.hosted ? 'Hosted snapshot' : 'Saved snapshot';
+      status.querySelector('span').textContent = 'Saved snapshot';
       cacheNotice.classList.remove('hidden');
       document.getElementById('lastSyncTime').textContent = timeAgo(result.lastSync);
-      document.getElementById('cacheNoticeLabel').textContent = result.hosted ? 'Hosted snapshot' : 'Saved snapshot';
+      document.getElementById('cacheNoticeLabel').textContent = 'Saved snapshot';
     }
 
     updateStats();
@@ -316,7 +314,7 @@ async function fetchUsageData(settingsOverride = null) {
 }
 
 async function refreshRouterStatusOnly() {
-  if (!autoRefreshEnabled || currentUsageResult?.hosted) return;
+  if (!autoRefreshEnabled) return;
 
   try {
     const stored = await chrome.storage.local.get(['settings']);
@@ -355,12 +353,9 @@ function updateBrief(isStaticMode) {
   pollStatus.textContent = autoRefreshEnabled ? 'Every 30s' : 'Paused';
 
   if (!routerStatus) {
-    const isDemoSnapshot = currentUsageResult?.source === 'demo-snapshot';
-    headline.textContent = isDemoSnapshot ? 'Demo history loaded' : (isStaticMode ? 'Static history loaded' : 'Live router check unavailable');
-    text.textContent = isDemoSnapshot
-      ? 'This public-safe snapshot contains synthetic readings. Run the local dashboard to connect to your own router.'
-      : isStaticMode
-        ? 'You can still review usage history, but live radio metrics need the local Node server to talk to the router.'
+    headline.textContent = isStaticMode ? 'Saved history loaded' : 'Live router check unavailable';
+    text.textContent = isStaticMode
+      ? 'You can still review usage history, but live radio metrics need the local router connection.'
       : 'Usage history is available, but the router did not return fresh radio data on the last check.';
     return;
   }

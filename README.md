@@ -1,196 +1,93 @@
 # Airtel Data Pulse
 
-A privacy-first dashboard for turning daily data-usage SMS messages from a compatible mobile router into a clean usage history, chart, and signal-health view.
+A local-first Chrome dashboard for reading mobile-router usage SMS and turning them into a clear history of daily data use.
 
-The project has two modes:
+It works while your computer is connected to the router Wi-Fi. No hosted account is required, and your router credentials, usage history, and source SMS stay on that Chrome profile.
 
-- **Local mode** connects to your router over the same Wi-Fi, reads the SMS inbox, and stores a private snapshot on your computer.
-- **Hosted mode** is safe for a public demo. It serves only the synthetic sample in `data/usage.example.json`; it cannot reach a router inside your home network.
+## The simple way to use it
+
+The Chrome extension is the recommended path for everyday users.
+
+1. Connect your computer to the Airtel, MTN, or compatible router Wi-Fi.
+2. Download or clone this repository.
+3. Open `chrome://extensions` in Chrome.
+4. Turn on **Developer mode**.
+5. Choose **Load unpacked** and select the repository's `extension` folder.
+6. Click the **Airtel Data Pulse** icon.
+7. Choose your network, confirm the router address, and enter the router login.
+
+The extension opens the dashboard in a full browser tab. See [`extension/README.md`](extension/README.md) for the short installation guide and sharing instructions.
 
 ## What the dashboard includes
 
-- Latest reading, seven-day total, tracked total, and daily average.
-- Peak and lowest usage days.
-- Daily usage chart with 7D, 14D, 30D, and all-history views.
-- Search, from/to date filters, usage sorting, and incremental “load more” table rendering.
-- Local-only signal health: network type, band, RSRP, RSRQ, SINR, RSSI, bandwidth, uptime, firmware, and frequency.
-- Privacy defaults that keep phone numbers, IMSI/IMEI, WAN details, cell IDs, and raw router responses out of the browser API.
+- **Overview:** latest reading, seven-day total, tracked total, average, trend chart, filters, and usage history.
+- **Network:** signal quality, network type, band, RSRP, RSRQ, SINR, RSSI, bandwidth, uptime, firmware, and frequency when the router provides them.
+- **Messages:** the source SMS inbox used to build the usage history, shown only after you choose to open it.
+- Airtel/MTN-aware colours and router-address presets.
+- Lazy-loaded history tables and responsive layouts for smaller screens.
 
-## The important mental model
+## Supported routers
 
-```text
-Router Wi-Fi → local Node server → private data/usage.json → browser dashboard
-                                      └─ public-safe API response only
-```
+The current adapter supports the ZLT/ZTE CGI and SMS interface used by the original router setup. The carrier name alone does not guarantee compatibility because Airtel and MTN distribute multiple router models and firmware versions.
 
-Vercel can host the interface and a demo snapshot, but a Vercel Function cannot initiate a connection to `192.168.x.x` or another private router address. Live readings therefore happen from the local dashboard while your computer is connected to the router Wi-Fi.
+Common starting addresses:
 
-## Easiest option for Chrome users
+- Airtel: `192.168.1.1` or `192.168.0.1`
+- MTN: `192.168.0.1`
 
-The repository includes a Chrome extension in [`extension/`](extension/). This is the intended non-technical flow:
+You can edit the address during setup. If the router uses a different firmware API, Data Pulse stops with a clear unsupported-router message instead of showing incorrect totals.
 
-1. Install the extension once.
-2. Connect Chrome to the Airtel/ZLT router Wi-Fi.
-3. Click the **Airtel Data Pulse** icon.
-4. Enter the router address, username, and password.
-5. View the full dashboard in a new Chrome tab: summary cards, chart, router health, filters, and usage history.
+## Privacy model
 
-The extension talks directly to the router and keeps the credentials/history inside that Chrome profile. It does not send live router data through Vercel. The dashboard now includes a trend-overlay chart, provider-aware Airtel/MTN identity, lazy-loaded history, and an opt-in source-SMS viewer. Raw SMS content stays local to the extension and is rendered as text.
+- The extension talks directly to the router over the local network.
+- Credentials are kept in Chrome local storage only when **Remember password on this device** is selected.
+- Usage history and source SMS remain in that Chrome profile.
+- SMS content is rendered as text and is not uploaded to a remote service.
+- There is no analytics, hosted login, or required online account.
 
-### How to share it
+Only use the remember-password option on a trusted computer. Never publish `.env`, router passwords, `data/usage.json`, or personal SMS exports.
 
-- **For technical testers:** share the extension ZIP or repository. They unzip it, open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the `extension` folder.
-- **For ordinary users:** publish the extension folder through the Chrome Web Store and share the store link. They should not need to handle a ZIP or Developer mode.
-- **Before public release:** test the target router model, document the local-router permission, and disclose that credentials, usage history, and source SMS are stored locally in Chrome. Never include `.env`, router credentials, or `data/usage.json` in the ZIP or repository.
+## Sharing it with someone
 
-The ZIP is a convenience package for testing, not a one-click consumer installer. Chrome Web Store publication is the smoother public-sharing route.
+For a technical tester, send the `Airtel-Data-Pulse-Chrome-Extension.zip` file or the GitHub repository. They should extract the ZIP first and select the extracted `extension` folder in Chrome's **Load unpacked** screen. The ZIP itself is not opened directly by Chrome as an installed extension.
 
-The carrier preset is not a hard-coded router promise: MTN and Airtel use multiple router families. MTN commonly starts at `192.168.0.1`, while Airtel commonly uses `192.168.1.1` or `192.168.0.1`. The extension probes the supported ZLT/ZTE CGI interface and stops with a clear unsupported-model message when a router uses a different firmware API.
+For ordinary users, the Chrome Web Store would eventually provide a one-click installation, but it is not required for this local project. The current sharing route is the repository or ZIP plus the short setup above.
 
-## Use it with your router
+## Optional developer mode
 
-### 1. Connect to the router
-
-Join the Airtel, MTN, or compatible router’s Wi-Fi from the computer that will run the dashboard. The computer and router must be on the same local network.
-
-### 2. Install the project
+The repository also contains a local Node dashboard for developers who prefer a server workflow. It is optional; the Chrome extension is the simplest public-facing experience.
 
 ```bash
-git clone https://github.com/Jendoooo/airtel-data-pulse.git
-cd airtel-data-pulse
 npm install
-```
-
-### 3. Create your private configuration
-
-Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-notepad .env
-```
-
-macOS/Linux:
-
-```bash
-cp .env.example .env
-nano .env
-```
-
-Fill in the router values in `.env`:
-
-```env
-ROUTER_PROVIDER=auto
-ROUTER_HOST=192.168.1.1
-ROUTER_USERNAME=admin
-ROUTER_PASSWORD=your-router-password
-BIND_HOST=127.0.0.1
-PORT=3456
-```
-
-Use the router’s real admin password. Do not commit `.env`, and do not paste its contents into an issue or public post.
-
-For MTN, set `ROUTER_PROVIDER=mtn` and usually use `ROUTER_HOST=192.168.0.1`. For Airtel, try `192.168.1.1` or `192.168.0.1`. The provider label does not guarantee a firmware match; the current adapter still targets the supported ZLT/ZTE CGI + SMS interface.
-
-### 4. Start the local dashboard
-
-```bash
 npm run dev
 ```
 
-Open [http://127.0.0.1:3456](http://127.0.0.1:3456). On first load the server attempts to read the router SMS inbox. It merges recognized messages by date and writes the private result to `data/usage.json`.
-
-To run a manual sync later:
-
-```bash
-npm run sync
-```
-
-The sync helper is local-only. It never commits or pushes your usage data.
-
-### 5. Read the dashboard
-
-1. **Connection status** tells you whether the current data came from the router, a saved local snapshot, or the synthetic demo.
-2. **Summary cards** show the latest reading and totals across the available history.
-3. **Daily Data Usage** lets you change the chart window.
-4. **Usage History** supports text search, date filters, sorting, and loading additional rows when the history is long.
-5. **Live Router Health** appears when the local server can reach the router. Hosted mode intentionally shows static/demo mode instead.
-
-## Expected SMS format
-
-The current parser looks for messages shaped like:
-
-```text
-data usage on <number> for YYYY-MM-DD was <number> MB
-```
-
-Router command IDs are isolated in `server.js`, so another compatible firmware adapter can replace the transport/parser without changing the dashboard.
-
-## Deploy the safe demo to Vercel
-
-### Git integration
-
-1. Import this GitHub repository into Vercel.
-2. Keep the default Node.js build settings.
-3. Deploy without adding router credentials.
-4. Open the deployment URL. It should show the synthetic sample and clearly indicate demo/hosted mode.
-
-### CLI
-
-```bash
-npm install -g vercel
-vercel login
-vercel
-```
-
-The included `vercel.json` bundles only `data/usage.example.json` into the server function. It does not include a private usage snapshot.
-
-### Vercel limitations to understand
-
-- A hosted function cannot see your home router’s private IP or Wi-Fi network.
-- The public deployment is demo/read-only by design; `/api/sync` and live router health are disabled there.
-- Serverless filesystems are not a durable database. Real usage history stays in your local `data/usage.json` unless you deliberately add a database or storage service.
-- Vercel Functions have platform limits such as payload size, execution duration, and bundle size. This project’s small JSON payload and short router request fit comfortably within those limits.
-- `express.static()` is not relied on for the hosted asset path; Vercel serves the `public/` directory and runs `server.js` as the function entry point.
-
-See Vercel’s [Express deployment guide](https://vercel.com/docs/frameworks/backend/express) and [Functions limits](https://vercel.com/docs/functions/limitations) for current platform details.
-
-## Privacy and security
-
-- Credentials are environment-only and are never committed.
-- `data/usage.json`, private snapshots, router audits, and generated bundles are ignored by Git.
-- API responses expose usage totals and non-identifying radio metrics only.
-- Hosted mode reads synthetic data and never writes a personal snapshot.
-- The local server binds to `127.0.0.1` by default. Set `BIND_HOST=0.0.0.0` only when you intentionally want LAN access.
-- Change any default router password before using the project.
-
-Read [SECURITY.md](SECURITY.md) before opening an issue or publishing a fork.
+The local server reads router data while the computer is on the router Wi-Fi. Keep `.env` private and bind the server to `127.0.0.1` unless you intentionally need LAN access.
 
 ## Project map
 
 | Path | Purpose |
 | --- | --- |
-| `server.js` | Express server, router client, SMS parser, privacy-safe API |
-| `public/` | Dashboard UI, chart, filters, responsive styles |
-| `data/usage.example.json` | Synthetic public demo snapshot |
-| `data/usage.json` | Private local snapshot, created at runtime and ignored |
-| `.env.example` | Configuration template |
-| `scripts/sync-and-push.js` | Local sync helper; no Git operations |
-| `vercel.json` | Hosted function and safe demo-data configuration |
+| `extension/` | Recommended Chrome extension |
+| `server.js` | Optional local Node router adapter and API |
+| `public/` | Optional local dashboard assets |
+| `.env.example` | Local configuration template |
+| `data/usage.example.json` | Safe example data for development |
+| `SECURITY.md` | Security and privacy notes |
 
 ## Troubleshooting
 
-**The dashboard shows “Router unreachable”**
+**The extension cannot connect**
 
-Confirm that the computer is connected to the router Wi-Fi, `ROUTER_HOST` is correct, and the router credentials work in its own admin UI. Then run `npm run sync` and refresh the browser.
+Confirm that the computer is connected to the router Wi-Fi, check the router address printed on the router label, and verify the username and password in the router admin page.
 
-**The dashboard shows demo data**
+**The router is unsupported**
 
-That is expected on Vercel and on a fresh checkout without `data/usage.json`. Use the local setup above for your own router history.
+Share the router model and firmware version when opening an issue. Do not share passwords, IMEI/IMSI values, phone numbers, or raw SMS exports.
 
-**I want to open it on my phone**
+**I changed the code and Chrome still shows the old version**
 
-Run the local server on the computer connected to the router and set `BIND_HOST=0.0.0.0` intentionally. Use the computer’s LAN IP from the same Wi-Fi. Do not expose the dashboard to the public internet without adding authentication and HTTPS.
+Open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The extension reads the files from the folder that was loaded there.
 
 ## License
 
