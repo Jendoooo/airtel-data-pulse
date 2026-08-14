@@ -1470,3 +1470,158 @@ body.provider-mtn .nav-item.active .nav-count { background: rgba(214, 158, 0, .1
   .chart-legend { white-space: normal; }
   .sms-toggle { width: 100%; justify-content: center; }
 }
+
+/* ============================================
+   Router portal-inspired network workspace
+   ============================================ */
+
+.portal-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 36px;
+  padding: 0 clamp(18px, 4vw, 56px);
+  border-bottom: 1px solid #e7ebf1;
+  background: #fbfcfe;
+  color: #657187;
+  font-size: .71rem;
+}
+
+.app-nav { gap: 6px; padding: 0; border: 0; background: transparent; }
+.nav-item { min-height: 38px; padding: 0 13px; border: 1px solid #e1e6ed; background: #fff; }
+.nav-item.active { color: #fff; background: var(--airtel-red); border-color: var(--airtel-red); box-shadow: 0 7px 17px var(--airtel-red-glow); }
+.nav-item.active .nav-icon,
+.nav-item.active .nav-count { color: #fff; background: rgba(255,255,255,.18); }
+body.provider-mtn .nav-item.active { color: #172033; background: #d69e00; border-color: #d69e00; }
+body.provider-mtn .nav-item.active .nav-icon,
+body.provider-mtn .nav-item.active .nav-count { color: #172033; background: rgba(255,255,255,.28); }
+
+.portal-status-group { display: flex; align-items: center; gap: 15px; min-width: 0; }
+.portal-status-right { justify-content: flex-end; }
+.portal-status-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.portal-status-item strong { color: #334155; font-weight: 800; }
+.live-indicator { display: inline-flex; align-items: center; gap: 7px; color: #08704d; font-weight: 800; }
+.live-indicator i { width: 7px; height: 7px; border-radius: 999px; background: #19a76f; box-shadow: 0 0 0 4px rgba(25, 167, 111, .12); animation: statusPulse 2.2s ease-in-out infinite; }
+.rail-signal-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 13px; }
+.rail-signal-bars i { display: block; width: 3px; border-radius: 2px 2px 0 0; background: #19a76f; }
+.rail-signal-bars i:nth-child(1) { height: 4px; }
+.rail-signal-bars i:nth-child(2) { height: 7px; }
+.rail-signal-bars i:nth-child(3) { height: 10px; }
+.rail-signal-bars i:nth-child(4) { height: 13px; }
+
+@keyframes statusPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(.8); opacity: .62; }
+}
+
+.router-section[data-view="network"] {
+  overflow: hidden;
+  padding: 0;
+  border-radius: 20px;
+  background: #f4f5f7;
+}
+
+.router-section[data-view="network"] .router-section-header {
+  padding: 24px clamp(22px, 3vw, 32px) 20px;
+  background: #fff;
+}
+
+.router-section-header .eyebrow { display: block; margin-bottom: 7px; }
+.network-console {
+  display: grid;
+  grid-template-columns: minmax(220px, .72fr) minmax(430px, 1.45fr) minmax(220px, .72fr);
+  min-height: 430px;
+  border-bottom: 1px solid #e0e4e9;
+  background: linear-gradient(180deg, #f2f3f5 0%, #eceef1 100%);
+}
+
+.network-readout,
+.network-runtime {
+  position: relative;
+  z-index: 2;
+  margin: 26px 0;
+  padding: 24px;
+  background: rgba(255, 255, 255, .86);
+  backdrop-filter: blur(12px);
+}
+
+.network-readout { margin-left: 26px; border-radius: 15px 0 0 15px; box-shadow: -8px 14px 32px rgba(25, 39, 64, .08); }
+.network-runtime { margin-right: 26px; border-radius: 0 15px 15px 0; box-shadow: 8px 14px 32px rgba(25, 39, 64, .08); }
+.console-label { color: #8b95a5; font-size: .64rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.signal-rating-large { margin-top: 10px; color: #172033; font-size: clamp(2rem, 4vw, 3.3rem); font-weight: 850; letter-spacing: -.06em; }
+.network-readout > p { min-height: 36px; margin: 6px 0 23px; color: #778397; font-size: .72rem; line-height: 1.55; }
+.radio-values { display: grid; gap: 0; }
+.radio-values > div,
+.runtime-list > div { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-top: 1px solid #edf0f4; }
+.radio-values span,
+.runtime-list span { color: #8995a8; font-size: .69rem; font-weight: 700; }
+.radio-values strong,
+.runtime-list strong { color: #334155; font-size: .76rem; }
+
+.router-stage { position: relative; display: grid; place-items: center; min-width: 0; overflow: hidden; }
+.router-stage::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 50% 60%, rgba(226, 27, 45, .11), transparent 53%); }
+.router-stage-title { position: absolute; top: 25px; left: 50%; z-index: 3; display: grid; justify-items: center; transform: translateX(-50%); white-space: nowrap; }
+.router-stage-title strong { color: #3d485a; font-size: 1.12rem; font-weight: 800; letter-spacing: -.02em; }
+.router-stage-title span { margin-top: 3px; color: #8a95a6; font-size: .68rem; font-weight: 750; text-transform: uppercase; }
+.router-device { position: relative; z-index: 4; width: 115px; margin-top: 16px; animation: routerFloat 4.8s ease-in-out infinite; }
+.router-device svg { display: block; width: 100%; overflow: visible; }
+.signal-orbit { position: absolute; left: 50%; top: 64%; z-index: 1; border: 1px solid var(--border-active); border-radius: 50%; transform: translate(-50%, -50%) rotateX(66deg); animation: orbitBreathe 3.6s ease-in-out infinite; }
+.orbit-one { width: 210px; height: 210px; }
+.orbit-two { width: 330px; height: 330px; animation-delay: -.8s; }
+.orbit-three { width: 470px; height: 470px; animation-delay: -1.6s; }
+.stage-base { position: absolute; left: 50%; top: 67%; z-index: 0; width: 420px; height: 190px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(ellipse, var(--airtel-red-glow) 0%, rgba(226, 27, 45, .04) 47%, transparent 70%); }
+.stage-base i { position: absolute; inset: 18%; border: 1px solid rgba(255,255,255,.9); border-radius: 50%; }
+.stage-base i:nth-child(2) { inset: 30%; }
+.stage-base i:nth-child(3) { inset: 42%; }
+.stage-chip { position: absolute; z-index: 5; display: grid; gap: 3px; min-width: 112px; padding: 11px 13px; border: 1px solid rgba(255,255,255,.85); border-radius: 11px; background: rgba(255,255,255,.72); backdrop-filter: blur(8px); box-shadow: 0 9px 25px rgba(25,39,64,.07); }
+.stage-chip span { color: #8995a8; font-size: .61rem; font-weight: 750; text-transform: uppercase; }
+.stage-chip strong { color: #334155; font-size: .76rem; }
+.stage-chip-left { left: 8%; top: 46%; }
+.stage-chip-right { right: 8%; top: 46%; }
+
+.runtime-primary { display: grid; gap: 7px; margin: 16px 0 21px; padding: 17px 0 19px; border-bottom: 1px solid #e9edf2; }
+.runtime-primary span { color: #8995a8; font-size: .68rem; font-weight: 700; }
+.runtime-primary strong { color: #172033; font-size: clamp(1.25rem, 2vw, 1.72rem); letter-spacing: -.04em; }
+.runtime-list { display: grid; }
+.network-console[data-signal="excellent"] .signal-rating-large,
+.network-console[data-signal="good"] .signal-rating-large { color: #08704d; }
+.network-console[data-signal="fair"] .signal-rating-large { color: #a16207; }
+.network-console[data-signal="poor"] .signal-rating-large { color: #b42332; }
+
+.router-section[data-view="network"] .signal-meters { margin: 0; padding: 24px clamp(22px, 3vw, 32px) 28px; background: #fff; }
+
+@keyframes routerFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+@keyframes orbitBreathe {
+  0%, 100% { opacity: .38; }
+  50% { opacity: .86; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .router-device, .signal-orbit, .live-indicator i { animation: none; }
+}
+
+@media (max-width: 1080px) {
+  .network-console { grid-template-columns: minmax(190px, .7fr) minmax(340px, 1.3fr); }
+  .network-runtime { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin: 0 26px 26px; border-radius: 15px; }
+  .runtime-list { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .runtime-list > div { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 760px) {
+  .portal-status { align-items: flex-start; flex-direction: column; gap: 8px; padding-top: 9px; padding-bottom: 9px; }
+  .portal-status-group { width: 100%; gap: 10px; overflow-x: auto; }
+  .portal-status-right { justify-content: flex-start; }
+  .network-console { grid-template-columns: 1fr; }
+  .network-readout, .network-runtime { margin: 18px; border-radius: 15px; }
+  .network-readout { order: 2; }
+  .router-stage { order: 1; min-height: 390px; }
+  .network-runtime { order: 3; display: block; }
+  .stage-chip-left { left: 4%; }
+  .stage-chip-right { right: 4%; }
+  .runtime-list { display: grid; grid-template-columns: 1fr; }
+}

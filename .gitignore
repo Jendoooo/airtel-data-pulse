@@ -10,4 +10,6 @@ data/*.private.json
 NETWORK_AUDIT_*.md
 router-index.js
 .playwright-mcp/
+.playwright-cli/
+output/playwright/
 *.zip

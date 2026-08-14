@@ -21,7 +21,7 @@ The extension opens the dashboard in a full browser tab. See [`extension/README.
 ## What the dashboard includes
 
 - **Overview:** latest reading, seven-day total, tracked total, average, trend chart, filters, and usage history.
-- **Network:** signal quality, network type, band, RSRP, RSRQ, SINR, RSSI, bandwidth, uptime, firmware, and frequency when the router provides them.
+- **Network:** a router-control workspace with a live status rail, ODU visual, signal quality, network type, band, RSRP, RSRQ, SINR, RSSI, bandwidth, uptime, firmware, and frequency when the router provides them.
 - **Messages:** the source SMS inbox used to build the usage history, shown only after you choose to open it.
 - Airtel/MTN-aware colours and router-address presets.
 - Lazy-loaded history tables and responsive layouts for smaller screens.

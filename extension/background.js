@@ -4,6 +4,7 @@ const DEFAULT_HOSTS = {
   mtn: '192.168.0.1',
 };
 const sessions = new Map();
+const routerMetadata = new Map();
 const STATUS_COMMAND = '7c6906a3-f7de-4795-a17e-ef032ffacda4';
 
 function cleanProvider(value) {
@@ -73,6 +74,10 @@ async function loginToRouter(host, username, password) {
     sessionId: '',
   });
   if (!init.success) throw new Error('This router answered, but it does not expose the supported ZLT/ZTE data interface. Try the router’s other model/address or share its model for an adapter.');
+
+  routerMetadata.set(host, {
+    modelName: init.model_name || init.product_name || init.board_type || null,
+  });
 
   const tokenResponse = await routerRequest(host, {
     cmd: '3830c61a-620d-47da-ae47-33d8401401c4',
@@ -274,6 +279,7 @@ async function dashboardData(settings) {
     providerKey: provider,
     provider: providerLabel(provider),
     routerHost: host,
+    routerModel: routerMetadata.get(host)?.modelName || null,
     messages,
   };
 }

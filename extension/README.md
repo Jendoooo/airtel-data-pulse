@@ -17,7 +17,7 @@ On first use, choose **Airtel**, **MTN**, or **Other network**, confirm the rout
 ## Dashboard views
 
 - **Overview** keeps the main screen focused on totals, the usage trend, filters, and daily history.
-- **Network** shows live radio health when the router exposes it.
+- **Network** uses a router-control workspace with a live status rail, ODU visual, and radio/device health when the router exposes it.
 - **Messages** shows the source SMS inbox only when you open it. The actual sender and message date are shown, and the content is rendered safely as text.
 
 ## Privacy
@@ -41,4 +41,4 @@ If a router uses a different firmware API, the extension reports that it is unsu
 
 ## After updating the files
 
-If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.3.1`.
+If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.4.0`.

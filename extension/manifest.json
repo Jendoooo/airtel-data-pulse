@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Airtel Data Pulse",
-  "version": "0.3.1",
-  "description": "A private, simple view of daily Airtel router data usage.",
+  "version": "0.4.0",
+  "description": "A local-first usage and network dashboard for compatible Airtel and MTN routers.",
   "action": {
     "default_title": "Open Airtel Data Pulse"
   },

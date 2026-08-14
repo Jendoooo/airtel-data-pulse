@@ -61,6 +61,19 @@
       </div>
     </header>
 
+    <div class="portal-status hidden" id="portalStatus" aria-label="Live router status">
+      <div class="portal-status-group">
+        <span class="live-indicator"><i></i> Local link</span>
+        <span class="portal-status-item"><strong id="railProvider">Router</strong></span>
+        <span class="portal-status-item"><span class="rail-signal-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><strong id="railNetworkType">-</strong></span>
+        <span class="portal-status-item">Band <strong id="railBand">-</strong></span>
+      </div>
+      <div class="portal-status-group portal-status-right">
+        <span class="portal-status-item">Signal <strong id="railSignal">Checking</strong></span>
+        <span class="portal-status-item">Router <strong id="railHost">-</strong></span>
+      </div>
+    </div>
+
     <div class="loading-screen" id="loadingScreen">
       <div class="loader">
         <div class="loader-ring"></div>
@@ -238,48 +251,65 @@
       <section class="router-section" data-view="network">
         <div class="router-section-header">
           <div>
+            <span class="eyebrow">Network workspace</span>
             <h2>Live Router Health</h2>
-            <p>Local-only radio metrics. Personal router and subscriber identifiers stay hidden.</p>
+            <p>Radio performance and device status from the local router interface.</p>
           </div>
           <div class="router-health-pill" id="routerHealthPill" aria-live="polite">Checking...</div>
         </div>
 
-        <div class="router-grid">
-          <div class="router-card router-card-primary">
-            <span class="router-label">Signal Quality</span>
-            <div class="router-value" id="signalRating">-</div>
-            <div class="router-sub" id="signalSummary">Waiting for router response</div>
+        <div class="network-console" data-signal="unknown">
+          <aside class="network-readout">
+            <span class="console-label">Radio link</span>
+            <div class="signal-rating-large" id="signalRating">-</div>
+            <p id="signalSummary">Waiting for router response</p>
+            <div class="radio-values">
+              <div><span>RSRP</span><strong id="rsrpValue">-</strong></div>
+              <div><span>RSRQ</span><strong id="rsrqValue">-</strong></div>
+              <div><span>SINR</span><strong id="sinrValue">-</strong></div>
+              <div><span>RSSI</span><strong id="rssiValue">-</strong></div>
+            </div>
+          </aside>
+
+          <div class="router-stage">
+            <div class="router-stage-title">
+              <strong id="routerModel">Router ODU</strong>
+              <span id="networkType">-</span>
+            </div>
+            <div class="signal-orbit orbit-one"></div>
+            <div class="signal-orbit orbit-two"></div>
+            <div class="signal-orbit orbit-three"></div>
+            <div class="router-device" aria-hidden="true">
+              <svg viewBox="0 0 150 270" role="img">
+                <defs>
+                  <linearGradient id="oduBody" x1="0" x2="1"><stop offset="0" stop-color="#f5f6f8"/><stop offset=".45" stop-color="#ffffff"/><stop offset="1" stop-color="#dce0e6"/></linearGradient>
+                  <linearGradient id="oduSide" x1="0" x2="1"><stop offset="0" stop-color="#d9dde3"/><stop offset="1" stop-color="#b9c0ca"/></linearGradient>
+                  <filter id="oduShadow"><feDropShadow dx="0" dy="12" stdDeviation="9" flood-color="#6f7680" flood-opacity=".28"/></filter>
+                </defs>
+                <g filter="url(#oduShadow)">
+                  <path d="M43 17Q43 7 53 5L105 18Q113 20 113 30V203Q113 211 105 214L54 229Q43 231 43 219Z" fill="url(#oduBody)"/>
+                  <path d="M105 18L118 25V197Q118 207 105 214V30Q105 22 105 18Z" fill="url(#oduSide)"/>
+                  <path d="M67 228H91V246H67Z" fill="#c9ced6"/>
+                  <path d="M60 246H98V258H60Z" rx="4" fill="#aeb6c1"/>
+                  <path d="M65 258H93V266H65Z" fill="#7f8996"/>
+                  <circle cx="77" cy="198" r="3" fill="#26b76a"/>
+                </g>
+              </svg>
+            </div>
+            <div class="stage-chip stage-chip-left"><span>Band</span><strong id="currentBand">-</strong></div>
+            <div class="stage-chip stage-chip-right"><span>Frequency</span><strong id="freqValue">-</strong></div>
+            <div class="stage-base"><i></i><i></i><i></i></div>
           </div>
 
-          <div class="router-card">
-            <span class="router-label">Network Type</span>
-            <div class="router-value" id="networkType">-</div>
-            <div class="router-sub" id="currentBand">-</div>
-          </div>
-
-          <div class="router-card">
-            <span class="router-label">RSRP</span>
-            <div class="router-value" id="rsrpValue">-</div>
-            <div class="router-sub">Reference signal power</div>
-          </div>
-
-          <div class="router-card">
-            <span class="router-label">RSRQ</span>
-            <div class="router-value" id="rsrqValue">-</div>
-            <div class="router-sub">Signal quality</div>
-          </div>
-
-          <div class="router-card">
-            <span class="router-label">SINR</span>
-            <div class="router-value" id="sinrValue">-</div>
-            <div class="router-sub">Interference ratio</div>
-          </div>
-
-          <div class="router-card">
-            <span class="router-label">RSSI</span>
-            <div class="router-value" id="rssiValue">-</div>
-            <div class="router-sub">Received signal strength</div>
-          </div>
+          <aside class="network-runtime">
+            <span class="console-label">Device status</span>
+            <div class="runtime-primary"><span>Runtime</span><strong id="uptimeValue">-</strong></div>
+            <div class="runtime-list">
+              <div><span>Bandwidth</span><strong id="bandwidthValue">-</strong></div>
+              <div><span>Firmware</span><strong id="firmwareValue">-</strong></div>
+              <div><span>Privacy</span><strong>Local only</strong></div>
+            </div>
+          </aside>
         </div>
 
         <div class="signal-meters">
@@ -306,28 +336,6 @@
           </div>
         </div>
 
-        <div class="router-details">
-          <div class="router-detail">
-            <span class="detail-label">Bandwidth</span>
-            <span class="detail-value" id="bandwidthValue">-</span>
-          </div>
-          <div class="router-detail">
-            <span class="detail-label">Uptime</span>
-            <span class="detail-value" id="uptimeValue">-</span>
-          </div>
-          <div class="router-detail">
-            <span class="detail-label">Firmware</span>
-            <span class="detail-value" id="firmwareValue">-</span>
-          </div>
-          <div class="router-detail">
-            <span class="detail-label">Frequency</span>
-            <span class="detail-value" id="freqValue">-</span>
-          </div>
-          <div class="router-detail">
-            <span class="detail-label">Data policy</span>
-            <span class="detail-value">No identifiers returned</span>
-          </div>
-        </div>
       </section>
 
       <section class="chart-section" data-view="overview">

@@ -222,6 +222,7 @@ function showExtensionSetup(message = '') {
   document.getElementById('errorScreen').classList.add('hidden');
   document.getElementById('dashboard').classList.add('hidden');
   document.querySelector('.app-nav').classList.add('hidden');
+  document.getElementById('portalStatus').classList.add('hidden');
   document.getElementById('extensionSetup').classList.remove('hidden');
   if (message) document.getElementById('setupError').textContent = message;
 }
@@ -234,12 +235,14 @@ async function fetchUsageData(settingsOverride = null) {
   const status = document.getElementById('connectionStatus');
   const cacheNotice = document.getElementById('cacheNotice');
   const appNav = document.querySelector('.app-nav');
+  const portalStatus = document.getElementById('portalStatus');
 
   refreshBtn.classList.add('spinning');
   loadingScreen.classList.remove('hidden');
   errorScreen.classList.add('hidden');
   dashboard.classList.add('hidden');
   appNav.classList.add('hidden');
+  portalStatus.classList.add('hidden');
 
   status.className = 'connection-status';
   status.querySelector('span').textContent = 'Connecting...';
@@ -277,6 +280,10 @@ async function fetchUsageData(settingsOverride = null) {
     document.getElementById('extensionSetup').classList.add('hidden');
     dashboard.classList.remove('hidden');
     appNav.classList.remove('hidden');
+    portalStatus.classList.remove('hidden');
+    document.getElementById('railProvider').textContent = result.provider || 'Router';
+    document.getElementById('railHost').textContent = result.routerHost || settings.host;
+    document.getElementById('routerModel').textContent = result.routerModel || 'Router ODU';
 
     if (result.routerConnected) {
       status.classList.add('connected');
@@ -380,6 +387,7 @@ function updateRouterHealth(isStaticMode, fetchedAt) {
   const signalRatingEl = document.getElementById('signalRating');
   const signalSummaryEl = document.getElementById('signalSummary');
   const checkTimeEl = document.getElementById('routerCheckTime');
+  const networkConsole = document.querySelector('.network-console');
 
   checkTimeEl.textContent = fetchedAt ? formatTimestamp(fetchedAt) : '-';
 
@@ -390,6 +398,10 @@ function updateRouterHealth(isStaticMode, fetchedAt) {
     signalSummaryEl.textContent = isStaticMode
       ? 'Live router metrics need the local Node server'
       : 'Could not read live router health from the ZTE API';
+    document.getElementById('railNetworkType').textContent = '-';
+    document.getElementById('railBand').textContent = '-';
+    document.getElementById('railSignal').textContent = 'Unavailable';
+    if (networkConsole) networkConsole.dataset.signal = 'unknown';
 
     [
       'networkType', 'currentBand', 'rsrpValue', 'rsrqValue', 'sinrValue', 'rssiValue',
@@ -417,6 +429,10 @@ function updateRouterHealth(isStaticMode, fetchedAt) {
 
   signalRatingEl.textContent = routerStatus.signalRating || 'Unknown';
   signalSummaryEl.textContent = describeSignal(routerStatus);
+  document.getElementById('railNetworkType').textContent = routerStatus.networkType || '-';
+  document.getElementById('railBand').textContent = routerStatus.currentBand || '-';
+  document.getElementById('railSignal').textContent = routerStatus.signalRating || 'Unknown';
+  if (networkConsole) networkConsole.dataset.signal = rating;
 
   document.getElementById('networkType').textContent = routerStatus.networkType || 'Unknown';
   document.getElementById('currentBand').textContent = routerStatus.currentBand || 'Band not reported';
