@@ -21,6 +21,7 @@
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
             </svg>
+            <span class="provider-wordmark" id="providerWordmark">DP</span>
           </div>
           <div class="logo-text">
             <h1>Data Pulse</h1>
@@ -294,10 +295,10 @@
             <div class="signal-rating-large" id="signalRating">-</div>
             <p id="signalSummary">Waiting for router response</p>
             <div class="radio-values">
-              <div><span>RSRP</span><strong id="rsrpValue">-</strong></div>
-              <div><span>RSRQ</span><strong id="rsrqValue">-</strong></div>
-              <div><span>SINR</span><strong id="sinrValue">-</strong></div>
-              <div><span>RSSI</span><strong id="rssiValue">-</strong></div>
+              <div><span>RSRP <small id="rsrpMeaning">Not reported</small></span><strong id="rsrpValue">-</strong></div>
+              <div><span>RSRQ <small id="rsrqMeaning">Not reported</small></span><strong id="rsrqValue">-</strong></div>
+              <div><span>SINR <small id="sinrMeaning">Not reported</small></span><strong id="sinrValue">-</strong></div>
+              <div><span>RSSI <small id="rssiMeaning">Not reported</small></span><strong id="rssiValue">-</strong></div>
             </div>
           </aside>
 
@@ -383,7 +384,7 @@
         <div class="chart-header">
           <div>
             <h2 id="chartTitle">Daily Data Usage</h2>
-            <span class="chart-caption" id="chartCaption">Bars show each day · line shows the trend</span>
+            <span class="chart-caption" id="chartCaption">Striped bars estimate only short unreported gaps from nearby readings</span>
           </div>
           <div class="chart-actions">
             <div class="chart-mode-controls" aria-label="Chart grouping">
@@ -393,6 +394,7 @@
             <div class="chart-legend" aria-label="Chart legend">
               <span><i class="legend-dot legend-usage"></i><span id="usageLegendLabel">Daily usage</span></span>
               <span><i class="legend-dot legend-average"></i>Average</span>
+              <span id="estimateLegend"><i class="legend-dot legend-estimate"></i>Estimated gap</span>
             </div>
             <div class="chart-controls" id="chartRangeControls" aria-label="Chart range">
               <button class="chart-range active" type="button" data-range="7">7D</button>
@@ -408,20 +410,6 @@
           <div class="chart-tooltip hidden" id="chartTooltip">
             <div class="tooltip-date" id="tooltipDate"></div>
             <div class="tooltip-value" id="tooltipValue"></div>
-          </div>
-        </div>
-        <div class="monthly-breakdown hidden" id="monthlyBreakdown">
-          <div class="monthly-breakdown-heading">
-            <div>
-              <h3>Month-by-month breakdown</h3>
-              <p>Totals include only the daily readings currently available in the router SMS history.</p>
-            </div>
-          </div>
-          <div class="monthly-table-wrap">
-            <table class="monthly-table">
-              <thead><tr><th>Month</th><th>Total usage</th><th>Tracked days</th><th>Daily average</th></tr></thead>
-              <tbody id="monthlyBreakdownBody"></tbody>
-            </table>
           </div>
         </div>
       </section>

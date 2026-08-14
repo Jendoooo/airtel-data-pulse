@@ -20,12 +20,15 @@ The extension opens the dashboard in a full browser tab. See [`extension/README.
 
 ## What the dashboard includes
 
-- **Overview:** latest reading, seven-day total, tracked total, average, daily/monthly charts, month-by-month totals, filters, CSV export, and usage history.
+- **Overview:** latest reading, seven-day reported total, tracked total, average, daily/monthly chart tabs, gap detection, filters, CSV export, and usage history.
 - **Renewals:** bundle transactions, known spend, typical subscription interval, and an estimated next-renewal date inferred from dated SMS records.
 - **Messages:** the source SMS inbox used to build the history, with unreliable numeric sender labels shown as `Router service`.
 - **Network:** a secondary diagnostic view for signal quality, network type, band, RSRP, RSRQ, SINR, RSSI, bandwidth, uptime, firmware, and frequency when the router provides them, with plain-language explanations and practical ranges.
 - Airtel/MTN-aware colours and router-address presets.
+- Airtel/MTN provider badges and a system-native type stack that remains crisp without downloading fonts.
 - Lazy-loaded history tables and responsive layouts for smaller screens.
+
+When a daily SMS is missing, Data Pulse marks the date as unreported instead of counting it as zero. The Daily chart may show a striped estimate for a short gap of up to six missing days when reported readings exist on both sides. Longer gaps stay labelled **No report**. Estimates are excluded from official totals, averages, history rows, and monthly totals. Monthly bars show reported totals and expose their `reported/expected` day coverage in the tooltip and CSV export.
 
 Renewal estimates depend on the messages still present in the router inbox. They are not carrier billing records and may be incomplete after SMS deletion or a router reset.
 

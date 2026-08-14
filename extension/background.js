@@ -149,19 +149,42 @@ function parseSmsEntries(smsList) {
   });
 }
 
+function normalizeSmsDate(value) {
+  const raw = String(value || '').replace(/\//g, '-');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const dmy = raw.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (!dmy) return null;
+  return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+}
+
+function usageAmountToMB(value, unit) {
+  const amount = Number.parseFloat(String(value).replace(/,/g, ''));
+  if (!Number.isFinite(amount)) return null;
+  const multiplier = { MB: 1, GB: 1024, TB: 1024 * 1024 }[String(unit).toUpperCase()];
+  return multiplier ? amount * multiplier : null;
+}
+
+function extractUsageReading(body) {
+  if (!/\bdata\s+usage\b/i.test(body)) return null;
+  const datePattern = '(\\d{4}[-/]\\d{2}[-/]\\d{2}|\\d{1,2}[-/]\\d{1,2}[-/]\\d{4})';
+  const afterDate = new RegExp(`${datePattern}[^\\d]{0,28}([\\d,.]+)\\s*(MB|GB|TB)\\b`, 'i').exec(body);
+  const beforeDate = new RegExp(`(?:was|is|used|usage)\\s*[:=-]?\\s*([\\d,.]+)\\s*(MB|GB|TB)\\b[^\\d]{0,40}${datePattern}`, 'i').exec(body);
+
+  const date = normalizeSmsDate(afterDate?.[1] || beforeDate?.[3]);
+  const usageMB = usageAmountToMB(afterDate?.[2] || beforeDate?.[1], afterDate?.[3] || beforeDate?.[2]);
+  return date && usageMB !== null ? { date, usageMB } : null;
+}
+
 function extractUsage(messages) {
-  const regex = /data usage on (\d+) for (\d{4}-\d{2}-\d{2}) was ([\d.]+) MB/i;
   const byDate = new Map();
 
   for (const message of messages) {
-    const match = message.message.match(regex);
-    if (!match) continue;
-    const usageMB = Number.parseFloat(match[3]);
-    if (!Number.isFinite(usageMB)) continue;
-    byDate.set(match[2], {
-      date: match[2],
-      usageMB,
-      usageGB: Number((usageMB / 1024).toFixed(4)),
+    const reading = extractUsageReading(String(message.message || ''));
+    if (!reading) continue;
+    byDate.set(reading.date, {
+      date: reading.date,
+      usageMB: reading.usageMB,
+      usageGB: Number((reading.usageMB / 1024).toFixed(4)),
     });
   }
 

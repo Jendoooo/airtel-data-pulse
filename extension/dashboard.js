@@ -62,6 +62,9 @@ function maskIdentifier(value) {
 }
 
 function getMonthlyUsage() {
+  if (usageData.length === 0) return [];
+  const firstTracked = usageData[0].date;
+  const lastTracked = usageData[usageData.length - 1].date;
   const months = new Map();
   usageData.forEach((entry) => {
     const key = String(entry.date || '').slice(0, 7);
@@ -71,11 +74,86 @@ function getMonthlyUsage() {
     current.daysTracked += 1;
     months.set(key, current);
   });
-  return [...months.values()].sort((a, b) => a.key.localeCompare(b.key)).map((month) => ({
-    ...month,
-    averageMB: month.daysTracked ? month.usageMB / month.daysTracked : 0,
-    label: new Date(`${month.date}T00:00:00`).toLocaleDateString('en-NG', { month: 'long', year: 'numeric' }),
-  }));
+  return [...months.values()].sort((a, b) => a.key.localeCompare(b.key)).map((month) => {
+    const [year, monthNumber] = month.key.split('-').map(Number);
+    const monthStart = month.date;
+    const monthEnd = `${month.key}-${String(new Date(year, monthNumber, 0).getDate()).padStart(2, '0')}`;
+    const coverageStart = monthStart > firstTracked ? monthStart : firstTracked;
+    const coverageEnd = monthEnd < lastTracked ? monthEnd : lastTracked;
+    const expectedDays = Math.max(1, Math.round((new Date(`${coverageEnd}T00:00:00`) - new Date(`${coverageStart}T00:00:00`)) / 86400000) + 1);
+    return {
+      ...month,
+      expectedDays,
+      missingDays: Math.max(0, expectedDays - month.daysTracked),
+      coveragePercent: Math.round((month.daysTracked / expectedDays) * 100),
+      averageMB: month.daysTracked ? month.usageMB / month.daysTracked : 0,
+      label: new Date(`${month.date}T00:00:00`).toLocaleDateString('en-NG', { month: 'long', year: 'numeric' }),
+    };
+  });
+}
+
+function dateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function median(values) {
+  const sorted = values.slice().sort((a, b) => a - b);
+  if (sorted.length === 0) return null;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function getDailyChartData(range = currentRange) {
+  if (usageData.length === 0) return [];
+  const entries = usageData.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const byDate = new Map(entries.map((entry) => [entry.date, entry]));
+  const end = new Date(`${entries.at(-1).date}T00:00:00`);
+  const start = range >= 9999
+    ? new Date(`${entries[0].date}T00:00:00`)
+    : new Date(end.getFullYear(), end.getMonth(), end.getDate() - range + 1);
+  const result = [];
+
+  for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+    const key = dateKey(cursor);
+    const reported = byDate.get(key);
+    if (reported) {
+      result.push({ ...reported, reported: true, missing: false, estimated: false });
+      continue;
+    }
+
+    const before = entries.filter((entry) => entry.date < key).slice(-3);
+    const after = entries.filter((entry) => entry.date > key).slice(0, 3);
+    const nearestBefore = before.at(-1);
+    const nearestAfter = after[0];
+    const surroundingGapDays = nearestBefore && nearestAfter
+      ? Math.round((new Date(`${nearestAfter.date}T00:00:00`) - new Date(`${nearestBefore.date}T00:00:00`)) / 86400000)
+      : Infinity;
+    // Estimate only short, bounded gaps. Longer silences stay explicitly unreported.
+    const nearbyValues = [...before, ...after]
+      .filter((entry) => Math.abs(new Date(`${entry.date}T00:00:00`) - new Date(`${key}T00:00:00`)) / 86400000 <= 7)
+      .map((entry) => Number(entry.usageMB))
+      .filter(Number.isFinite);
+    const estimate = before.length && after.length && surroundingGapDays <= 7
+      ? median(nearbyValues)
+      : null;
+    result.push({
+      date: key,
+      usageMB: estimate || 0,
+      reported: false,
+      missing: true,
+      estimated: estimate !== null,
+    });
+  }
+  return result;
+}
+
+function getCoverageSummary() {
+  const calendar = getDailyChartData(9999);
+  const missing = calendar.filter((entry) => entry.missing).length;
+  return { expected: calendar.length, reported: usageData.length, missing };
 }
 
 function getDayName(dateStr) {
@@ -153,6 +231,12 @@ function setProviderBrand(providerKey = 'auto') {
   const provider = key.includes('mtn') ? 'mtn' : key.includes('airtel') ? 'airtel' : 'other';
   document.body.classList.remove('provider-airtel', 'provider-mtn', 'provider-other');
   document.body.classList.add(`provider-${provider}`);
+
+  const providerWordmark = document.getElementById('providerWordmark');
+  const logoIcon = document.querySelector('.logo-icon');
+  const providerName = provider === 'airtel' ? 'airtel' : provider === 'mtn' ? 'MTN' : 'DP';
+  if (providerWordmark) providerWordmark.textContent = providerName;
+  if (logoIcon) logoIcon.setAttribute('aria-label', provider === 'other' ? 'Data Pulse' : `${providerName} connection`);
 
   const favicon = document.getElementById('appFavicon');
   if (!favicon) return;
@@ -478,6 +562,37 @@ function describeSignal(statusData) {
   return pieces.join(' | ') || 'No live radio metrics returned';
 }
 
+function signalMetricMeaning(metric, value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 'Not reported';
+  if (metric === 'rsrp') return number >= -80 ? 'Strong' : number >= -95 ? 'Usable' : number >= -110 ? 'Weak' : 'Very weak';
+  if (metric === 'rsrq') return number >= -10 ? 'Clean' : number >= -15 ? 'Fair' : 'Interference';
+  if (metric === 'sinr') return number >= 20 ? 'Excellent' : number >= 10 ? 'Good' : number >= 0 ? 'Fair' : 'Heavy interference';
+  if (metric === 'rssi') return number >= -65 ? 'Strong total power' : number >= -75 ? 'Good total power' : number >= -85 ? 'Fair total power' : 'Low total power';
+  return 'Reported';
+}
+
+function interpretCurrentSignal(statusData) {
+  if (!statusData) return 'No live radio readings were provided by this router.';
+  const available = [
+    ['Signal strength', 'rsrp', statusData.rsrp],
+    ['Signal quality', 'rsrq', statusData.rsrq],
+    ['Signal clarity', 'sinr', statusData.sinr],
+  ].filter(([, , value]) => Number.isFinite(Number(value)));
+  if (available.length === 0) return 'The router connected, but this firmware did not include signal readings.';
+
+  const summary = available.map(([label, metric, value]) => `${label.toLowerCase()} is ${signalMetricMeaning(metric, value).toLowerCase()} (${value}${metric === 'rsrp' ? ' dBm' : ' dB'})`).join(', ');
+  const rating = String(statusData.signalRating || '').toLowerCase();
+  const implication = rating === 'excellent'
+    ? 'This should support a stable connection; slowdowns are more likely to come from congestion or the carrier network.'
+    : rating === 'good'
+      ? 'This should be reliable for normal use, though peak speeds may vary.'
+      : rating === 'fair'
+        ? 'Moving the router higher or closer to a window may improve stability.'
+        : 'Try repositioning the router and checking for obstructions or interference.';
+  return `Right now, ${summary}. ${implication}`;
+}
+
 function updateBrief(isStaticMode) {
   const headline = document.getElementById('briefHeadline');
   const text = document.getElementById('briefText');
@@ -540,6 +655,9 @@ function updateRouterHealth(isStaticMode, fetchedAt) {
     ['rsrpMeter', 'rsrqMeter', 'sinrMeter'].forEach((id) => {
       document.getElementById(id).style.width = '0%';
     });
+    ['rsrpMeaning', 'rsrqMeaning', 'sinrMeaning', 'rssiMeaning'].forEach((id) => {
+      document.getElementById(id).textContent = 'Not reported';
+    });
     return;
   }
 
@@ -554,7 +672,7 @@ function updateRouterHealth(isStaticMode, fetchedAt) {
   healthPill.className = `router-health-pill ${pillClass}`;
 
   signalRatingEl.textContent = routerStatus.signalRating || 'Unknown';
-  signalSummaryEl.textContent = describeSignal(routerStatus);
+  signalSummaryEl.textContent = interpretCurrentSignal(routerStatus);
   document.getElementById('railNetworkType').textContent = routerStatus.networkType || '-';
   document.getElementById('railBand').textContent = routerStatus.currentBand || '-';
   document.getElementById('railSignal').textContent = routerStatus.signalRating || 'Unknown';
@@ -566,6 +684,10 @@ function updateRouterHealth(isStaticMode, fetchedAt) {
   document.getElementById('rsrqValue').textContent = formatMetric(routerStatus.rsrq, ' dB');
   document.getElementById('sinrValue').textContent = formatMetric(routerStatus.sinr, ' dB');
   document.getElementById('rssiValue').textContent = formatMetric(routerStatus.rssi, ' dBm');
+  document.getElementById('rsrpMeaning').textContent = signalMetricMeaning('rsrp', routerStatus.rsrp);
+  document.getElementById('rsrqMeaning').textContent = signalMetricMeaning('rsrq', routerStatus.rsrq);
+  document.getElementById('sinrMeaning').textContent = signalMetricMeaning('sinr', routerStatus.sinr);
+  document.getElementById('rssiMeaning').textContent = signalMetricMeaning('rssi', routerStatus.rssi);
   document.getElementById('bandwidthValue').textContent = routerStatus.bandwidth || '-';
   document.getElementById('uptimeValue').textContent = formatUptime(routerStatus.uptime);
   document.getElementById('firmwareValue').textContent = routerStatus.firmwareVersion || '-';
@@ -588,11 +710,11 @@ function updateStats() {
   document.getElementById('todayUsage').textContent = formatGB(latest.usageMB);
   document.getElementById('todayDate').textContent = `${formatDate(latest.date)} · ${formatFreshness(latest.date)}`;
 
-  const last7 = usageData.slice(-7);
+  const last7 = getDailyChartData(7).filter((entry) => entry.reported);
   const weekTotal = last7.reduce((sum, d) => sum + d.usageMB, 0);
-  const weekAvg = weekTotal / last7.length;
+  const weekAvg = last7.length ? weekTotal / last7.length : 0;
   document.getElementById('weekUsage').textContent = formatGB(weekTotal);
-  document.getElementById('weekAvg').textContent = `Avg: ${formatGB(weekAvg)}/day`;
+  document.getElementById('weekAvg').textContent = `${last7.length}/7 reported · ${formatGB(weekAvg)}/day`;
 
   const totalAll = usageData.reduce((sum, d) => sum + d.usageMB, 0);
   document.getElementById('monthUsage').textContent = formatGB(totalAll);
@@ -620,8 +742,11 @@ function updateHighlights() {
 
   const first = usageData[0];
   const last = usageData[usageData.length - 1];
+  const coverage = getCoverageSummary();
   document.getElementById('streakValue').textContent = `${usageData.length} days`;
-  document.getElementById('streakDate').textContent = `${formatDate(first.date)} -> ${formatDate(last.date)}`;
+  document.getElementById('streakDate').textContent = coverage.missing
+    ? `${coverage.missing} missing report${coverage.missing === 1 ? '' : 's'} in this period`
+    : `${formatDate(first.date)} -> ${formatDate(last.date)}`;
 }
 
 /* ============================================
@@ -643,12 +768,13 @@ function drawChart() {
 
   const width = rect.width;
   const height = rect.height;
-  const data = chartMode === 'monthly' ? getMonthlyUsage().slice(-12) : usageData.slice(-currentRange);
+  const data = chartMode === 'monthly' ? getMonthlyUsage().slice(-12) : getDailyChartData(currentRange);
   if (data.length === 0) return;
 
   const padding = { top: 24, right: 24, bottom: 52, left: 60 };
   const chartW = width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
+  const chartFont = getComputedStyle(document.body).fontFamily;
   const chartAccent = document.body.classList.contains('provider-mtn') ? '#d69e00' : '#e21b2d';
   const maxMB = Math.max(...data.map((d) => d.usageMB));
   const maxGB = Math.ceil(maxMB / 1024);
@@ -659,7 +785,7 @@ function drawChart() {
   const gridLines = 5;
   ctx.strokeStyle = 'rgba(23, 32, 51, 0.08)';
   ctx.lineWidth = 1;
-  ctx.font = '500 11px Inter, sans-serif';
+  ctx.font = `500 11px ${chartFont}`;
   ctx.fillStyle = '#758196';
   ctx.textAlign = 'right';
 
@@ -681,7 +807,8 @@ function drawChart() {
   const totalBarsWidth = barCount * barWidth + (barCount + 1) * barGap;
   const offsetX = padding.left + (chartW - totalBarsWidth) / 2;
 
-  const avg = data.reduce((sum, d) => sum + d.usageMB, 0) / data.length;
+  const averageSource = chartMode === 'monthly' ? data : data.filter((entry) => entry.reported);
+  const avg = averageSource.reduce((sum, d) => sum + d.usageMB, 0) / Math.max(averageSource.length, 1);
   const avgY = padding.top + chartH * (1 - avg / scaleMax);
   const points = data.map((d, i) => ({
     x: offsetX + barGap + i * (barWidth + barGap) + barWidth / 2,
@@ -699,7 +826,7 @@ function drawChart() {
 
   ctx.fillStyle = 'rgba(79, 70, 229, 0.86)';
   ctx.textAlign = 'left';
-  ctx.font = '600 10px Inter, sans-serif';
+  ctx.font = `600 10px ${chartFont}`;
   ctx.fillText(`AVG ${formatGB(avg)}`, width - padding.right + 2, avgY - 5);
 
   data.forEach((d, i) => {
@@ -709,7 +836,8 @@ function drawChart() {
     const ratio = d.usageMB / avg;
 
     let barColor;
-    if (ratio > 1.5) barColor = 'rgba(237, 28, 36, 0.85)';
+    if (d.estimated) barColor = 'rgba(148, 163, 184, 0.72)';
+    else if (ratio > 1.5) barColor = 'rgba(237, 28, 36, 0.85)';
     else if (ratio > 1.1) barColor = 'rgba(245, 158, 11, 0.85)';
     else barColor = 'rgba(16, 185, 129, 0.85)';
 
@@ -729,16 +857,32 @@ function drawChart() {
     ctx.fillStyle = grad;
     ctx.fill();
 
+    if (d.estimated && barH > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, barWidth, barH);
+      ctx.clip();
+      ctx.strokeStyle = 'rgba(255, 255, 255, .72)';
+      ctx.lineWidth = 1;
+      for (let stripe = x - barH; stripe < x + barWidth + barH; stripe += 7) {
+        ctx.beginPath();
+        ctx.moveTo(stripe, y + barH);
+        ctx.lineTo(stripe + barH, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     if (barWidth > 20) {
       ctx.fillStyle = 'rgba(23, 32, 51, 0.84)';
       ctx.textAlign = 'center';
-      ctx.font = `700 ${Math.min(10, barWidth * 0.28)}px Inter, sans-serif`;
+      ctx.font = `700 ${Math.min(10, barWidth * 0.28)}px ${chartFont}`;
       ctx.fillText(`${(d.usageMB / 1024).toFixed(1)}G`, x + barWidth / 2, y - 8);
     }
 
     if (barWidth > 14 || barCount <= 14) {
       ctx.fillStyle = '#758196';
-      ctx.font = `500 ${Math.min(10, barWidth * 0.3)}px Inter, sans-serif`;
+      ctx.font = `500 ${Math.min(10, barWidth * 0.3)}px ${chartFont}`;
       ctx.textAlign = 'center';
       const primaryLabel = chartMode === 'monthly'
         ? new Date(`${d.date}T00:00:00`).toLocaleDateString('en-NG', { month: 'short' })
@@ -746,8 +890,11 @@ function drawChart() {
       ctx.fillText(primaryLabel, x + barWidth / 2, height - padding.bottom + 16);
 
       ctx.fillStyle = '#9aa5b5';
-      ctx.font = `500 ${Math.min(9, barWidth * 0.25)}px Inter, sans-serif`;
-      ctx.fillText(chartMode === 'monthly' ? `${d.daysTracked} days` : getDayName(d.date), x + barWidth / 2, height - padding.bottom + 28);
+      ctx.font = `500 ${Math.min(9, barWidth * 0.25)}px ${chartFont}`;
+      const secondaryLabel = chartMode === 'monthly'
+        ? `${d.daysTracked}/${d.expectedDays} days`
+        : d.estimated ? 'estimated' : d.missing ? 'no report' : getDayName(d.date);
+      ctx.fillText(secondaryLabel, x + barWidth / 2, height - padding.bottom + 28);
     }
   });
 
@@ -800,8 +947,12 @@ function setupChartHover(canvas, data, offsetX, barGap, barWidth) {
         ? d.label
         : `${formatDate(d.date)} | ${getFullDayName(d.date)}`;
       document.getElementById('tooltipValue').textContent = chartMode === 'monthly'
-        ? `${formatGB(d.usageMB)} across ${d.daysTracked} tracked days`
-        : formatGB(d.usageMB);
+        ? `${formatGB(d.usageMB)} · ${d.daysTracked}/${d.expectedDays} days reported`
+        : d.estimated
+          ? `Estimated ${formatGB(d.usageMB)} · no carrier SMS`
+          : d.missing
+            ? 'No carrier SMS · not counted'
+            : formatGB(d.usageMB);
       tooltip.classList.remove('hidden');
       tooltip.style.left = `${Math.min(e.clientX - rect.left + 12, rect.width - 160)}px`;
       tooltip.style.top = `${e.clientY - rect.top - 60}px`;
@@ -821,26 +972,6 @@ function setRange(range) {
   drawChart();
 }
 
-function renderMonthlyBreakdown() {
-  const section = document.getElementById('monthlyBreakdown');
-  const tbody = document.getElementById('monthlyBreakdownBody');
-  if (!section || !tbody) return;
-  const months = getMonthlyUsage().slice().reverse();
-  section.classList.toggle('hidden', chartMode !== 'monthly');
-  tbody.replaceChildren();
-
-  months.forEach((month) => {
-    const row = document.createElement('tr');
-    [month.label, formatGB(month.usageMB), String(month.daysTracked), `${formatGB(month.averageMB)}/day`].forEach((value, index) => {
-      const cell = document.createElement('td');
-      cell.textContent = value;
-      if (index > 0) cell.className = 'numeric-cell';
-      row.append(cell);
-    });
-    tbody.append(row);
-  });
-}
-
 function setChartMode(mode) {
   chartMode = mode === 'monthly' ? 'monthly' : 'daily';
   document.querySelectorAll('[data-chart-mode]').forEach((button) => {
@@ -851,11 +982,11 @@ function setChartMode(mode) {
   document.getElementById('chartRangeControls').classList.toggle('hidden', chartMode === 'monthly');
   document.getElementById('chartTitle').textContent = chartMode === 'monthly' ? 'Monthly Data Usage' : 'Daily Data Usage';
   document.getElementById('chartCaption').textContent = chartMode === 'monthly'
-    ? 'Calendar-month totals from tracked daily readings'
-    : 'Bars show each day · line shows the trend';
+    ? 'Reported calendar-month totals; hover a bar to see coverage'
+    : 'Striped bars estimate only short unreported gaps from nearby readings';
   document.getElementById('usageLegendLabel').textContent = chartMode === 'monthly' ? 'Monthly total' : 'Daily usage';
+  document.getElementById('estimateLegend').classList.toggle('hidden', chartMode === 'monthly');
   document.getElementById('exportCsv').textContent = chartMode === 'monthly' ? 'Export monthly CSV' : 'Export daily CSV';
-  renderMonthlyBreakdown();
   drawChart();
 }
 
@@ -904,9 +1035,12 @@ function exportUsageCsv() {
       month.usageMB.toFixed(2),
       (month.usageMB / 1024).toFixed(4),
       month.daysTracked,
+      month.expectedDays,
+      month.missingDays,
+      month.coveragePercent,
       month.averageMB.toFixed(2),
     ]);
-    downloadCsv(`data-pulse-monthly-${stamp}.csv`, ['Month', 'Label', 'Total MB', 'Total GB', 'Tracked days', 'Average MB per tracked day'], rows);
+    downloadCsv(`data-pulse-monthly-${stamp}.csv`, ['Month', 'Label', 'Reported total MB', 'Reported total GB', 'Reported days', 'Expected days in tracked period', 'Missing reports', 'Coverage percent', 'Average MB per reported day'], rows);
     return;
   }
 

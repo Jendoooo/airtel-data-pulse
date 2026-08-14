@@ -16,12 +16,14 @@ On first use, choose **Airtel**, **MTN**, or **Other network**, confirm the rout
 
 ## Dashboard views
 
-- **Overview** keeps the main screen focused on totals, daily/monthly trends, month-by-month totals, filters, CSV export, and daily history.
+- **Overview** keeps the main screen focused on reported totals, Daily/Monthly chart tabs in one workspace, missing-report estimates, filters, CSV export, and daily history.
 - **Renewals** identifies bundle transaction messages, calculates known spend, and estimates the typical interval and next renewal when at least two dated events exist.
 - **Messages** shows the source SMS inbox. Numeric sender values such as `0` or `1` are labelled `Router service`, and content is rendered safely as text.
 - **Network** is a compact secondary diagnostic view for radio and device health when the router exposes it. An included glossary explains RSRP, RSRQ, SINR, RSSI, band, frequency, and bandwidth.
 
 Renewal cadence is an inference from available SMS history, not a guarantee from Airtel or MTN. Transaction IDs are masked in the renewal table.
+
+Missing daily reports are never treated as zero. Short gaps with reported readings on both sides may appear as clearly labelled striped estimates; longer gaps remain **No report**. Estimates are excluded from totals. Monthly bars and exports use reported readings only and include coverage fields so partial months are not mistaken for complete ones.
 
 ## Privacy
 
@@ -44,7 +46,7 @@ If a router uses a different firmware API, the extension reports that it is unsu
 
 ## After updating the files
 
-If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.6.0`.
+If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.7.0`.
 
 ## Mobile note
 

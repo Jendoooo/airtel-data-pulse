@@ -32,7 +32,7 @@
   --radius-lg: 20px;
   --radius-xl: 28px;
 
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font: "Aptos", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 *,
@@ -1196,7 +1196,7 @@ select {
   --border-active: rgba(226, 27, 45, 0.34);
   --shadow-md: 0 12px 28px rgba(25, 39, 64, 0.08);
   --shadow-lg: 0 22px 48px rgba(25, 39, 64, 0.11);
-  --font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font: "Aptos", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body {
@@ -2012,15 +2012,20 @@ body.provider-mtn .nav-item.active {
 }
 .export-csv:hover { border-color: #b8c0cc; background: #f9fafb; }
 
-.monthly-breakdown { margin-top: 18px; padding-top: 20px; border-top: 1px solid var(--line); }
-.monthly-breakdown-heading h3 { margin: 0; color: var(--ink); font-size: .95rem; }
-.monthly-breakdown-heading p { margin: 5px 0 14px; color: var(--muted); font-size: .72rem; }
-.monthly-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; }
-.monthly-table { width: 100%; min-width: 620px; border-collapse: collapse; }
-.monthly-table th, .monthly-table td { padding: 12px 14px; border-bottom: 1px solid #eef0f3; color: #475467; font-size: .75rem; text-align: left; }
-.monthly-table th { color: #667085; background: #f8f9fb; font-size: .64rem; letter-spacing: .07em; text-transform: uppercase; }
-.monthly-table tr:last-child td { border-bottom: 0; }
-.monthly-table th:not(:first-child), .monthly-table .numeric-cell { text-align: right; }
+.legend-estimate { background: repeating-linear-gradient(135deg, #94a3b8 0 3px, #e2e8f0 3px 6px); box-shadow: 0 0 0 3px rgba(148, 163, 184, .12); }
+
+.logo-icon { width: 58px; border-radius: 9px; background: #344054; box-shadow: none; }
+.logo-icon svg { display: none; }
+.provider-wordmark { color: #fff; font-size: .78rem; font-weight: 850; letter-spacing: -.035em; }
+body.provider-airtel .logo-icon { background: #e21b2d; }
+body.provider-airtel .provider-wordmark { font-size: .82rem; font-style: italic; }
+body.provider-mtn .logo-icon { border: 2px solid #171a21; border-radius: 50% / 42%; background: #ffcc00; box-shadow: none; }
+body.provider-mtn .provider-wordmark { color: #171a21; font-style: normal; letter-spacing: -.05em; }
+
+.radio-values span { display: grid; gap: 3px; }
+.radio-values small { color: var(--accent); font-size: .57rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+body.provider-mtn .radio-values small { color: #7a5900; }
+.network-readout > p { min-height: 0; font-size: .75rem; line-height: 1.62; }
 
 body.provider-mtn .chart-mode.active { color: #7a5900; }
 body.provider-mtn .network-guide-grid strong span { color: #7a5900; }
