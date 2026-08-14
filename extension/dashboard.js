@@ -4,6 +4,7 @@
 
 let usageData = [];
 let currentRange = 7;
+let chartMode = 'daily';
 let routerStatus = null;
 let sourceMessages = [];
 let subscriptionEvents = [];
@@ -58,6 +59,23 @@ function maskIdentifier(value) {
   const text = String(value || 'Not stated');
   if (text.length <= 6) return text;
   return `••••${text.slice(-6)}`;
+}
+
+function getMonthlyUsage() {
+  const months = new Map();
+  usageData.forEach((entry) => {
+    const key = String(entry.date || '').slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(key)) return;
+    const current = months.get(key) || { key, date: `${key}-01`, usageMB: 0, daysTracked: 0 };
+    current.usageMB += Number(entry.usageMB) || 0;
+    current.daysTracked += 1;
+    months.set(key, current);
+  });
+  return [...months.values()].sort((a, b) => a.key.localeCompare(b.key)).map((month) => ({
+    ...month,
+    averageMB: month.daysTracked ? month.usageMB / month.daysTracked : 0,
+    label: new Date(`${month.date}T00:00:00`).toLocaleDateString('en-NG', { month: 'long', year: 'numeric' }),
+  }));
 }
 
 function getDayName(dateStr) {
@@ -433,7 +451,7 @@ async function refreshRouterStatusOnly() {
 
   try {
     const stored = await chrome.storage.local.get(['settings']);
-    if (!stored.settings?.password) return;
+    if (!stored.settings?.host) return;
     const result = await chrome.runtime.sendMessage({ type: 'router-status', settings: stored.settings });
     if (!result.success) throw new Error(result.error || 'Router status unavailable');
     routerStatus = result.data;
@@ -500,12 +518,12 @@ function updateRouterHealth(isStaticMode, fetchedAt) {
   checkTimeEl.textContent = fetchedAt ? formatTimestamp(fetchedAt) : '-';
 
   if (!routerStatus) {
-    healthPill.textContent = isStaticMode ? 'Static mode' : 'Unavailable';
+    healthPill.textContent = isStaticMode ? 'Static mode' : 'Not provided';
     healthPill.className = 'router-health-pill router-health-offline';
-    signalRatingEl.textContent = isStaticMode ? 'Static only' : 'Offline';
+    signalRatingEl.textContent = isStaticMode ? 'Static only' : 'No metrics';
     signalSummaryEl.textContent = isStaticMode
       ? 'Live router metrics need the local Node server'
-      : 'Could not read live router health from the ZTE API';
+      : 'Usage can still work normally; this router firmware did not provide live radio metrics.';
     document.getElementById('railNetworkType').textContent = '-';
     document.getElementById('railBand').textContent = '-';
     document.getElementById('railSignal').textContent = 'Unavailable';
@@ -625,7 +643,7 @@ function drawChart() {
 
   const width = rect.width;
   const height = rect.height;
-  const data = usageData.slice(-currentRange);
+  const data = chartMode === 'monthly' ? getMonthlyUsage().slice(-12) : usageData.slice(-currentRange);
   if (data.length === 0) return;
 
   const padding = { top: 24, right: 24, bottom: 52, left: 60 };
@@ -722,11 +740,14 @@ function drawChart() {
       ctx.fillStyle = '#758196';
       ctx.font = `500 ${Math.min(10, barWidth * 0.3)}px Inter, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(formatDate(d.date), x + barWidth / 2, height - padding.bottom + 16);
+      const primaryLabel = chartMode === 'monthly'
+        ? new Date(`${d.date}T00:00:00`).toLocaleDateString('en-NG', { month: 'short' })
+        : formatDate(d.date);
+      ctx.fillText(primaryLabel, x + barWidth / 2, height - padding.bottom + 16);
 
       ctx.fillStyle = '#9aa5b5';
       ctx.font = `500 ${Math.min(9, barWidth * 0.25)}px Inter, sans-serif`;
-      ctx.fillText(getDayName(d.date), x + barWidth / 2, height - padding.bottom + 28);
+      ctx.fillText(chartMode === 'monthly' ? `${d.daysTracked} days` : getDayName(d.date), x + barWidth / 2, height - padding.bottom + 28);
     }
   });
 
@@ -775,8 +796,12 @@ function setupChartHover(canvas, data, offsetX, barGap, barWidth) {
 
     if (barIndex >= 0 && barIndex < data.length) {
       const d = data[barIndex];
-      document.getElementById('tooltipDate').textContent = `${formatDate(d.date)} | ${getFullDayName(d.date)}`;
-      document.getElementById('tooltipValue').textContent = formatGB(d.usageMB);
+      document.getElementById('tooltipDate').textContent = chartMode === 'monthly'
+        ? d.label
+        : `${formatDate(d.date)} | ${getFullDayName(d.date)}`;
+      document.getElementById('tooltipValue').textContent = chartMode === 'monthly'
+        ? `${formatGB(d.usageMB)} across ${d.daysTracked} tracked days`
+        : formatGB(d.usageMB);
       tooltip.classList.remove('hidden');
       tooltip.style.left = `${Math.min(e.clientX - rect.left + 12, rect.width - 160)}px`;
       tooltip.style.top = `${e.clientY - rect.top - 60}px`;
@@ -794,6 +819,104 @@ function setRange(range) {
     btn.classList.toggle('active', parseInt(btn.dataset.range, 10) === range);
   });
   drawChart();
+}
+
+function renderMonthlyBreakdown() {
+  const section = document.getElementById('monthlyBreakdown');
+  const tbody = document.getElementById('monthlyBreakdownBody');
+  if (!section || !tbody) return;
+  const months = getMonthlyUsage().slice().reverse();
+  section.classList.toggle('hidden', chartMode !== 'monthly');
+  tbody.replaceChildren();
+
+  months.forEach((month) => {
+    const row = document.createElement('tr');
+    [month.label, formatGB(month.usageMB), String(month.daysTracked), `${formatGB(month.averageMB)}/day`].forEach((value, index) => {
+      const cell = document.createElement('td');
+      cell.textContent = value;
+      if (index > 0) cell.className = 'numeric-cell';
+      row.append(cell);
+    });
+    tbody.append(row);
+  });
+}
+
+function setChartMode(mode) {
+  chartMode = mode === 'monthly' ? 'monthly' : 'daily';
+  document.querySelectorAll('[data-chart-mode]').forEach((button) => {
+    const active = button.dataset.chartMode === chartMode;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  document.getElementById('chartRangeControls').classList.toggle('hidden', chartMode === 'monthly');
+  document.getElementById('chartTitle').textContent = chartMode === 'monthly' ? 'Monthly Data Usage' : 'Daily Data Usage';
+  document.getElementById('chartCaption').textContent = chartMode === 'monthly'
+    ? 'Calendar-month totals from tracked daily readings'
+    : 'Bars show each day · line shows the trend';
+  document.getElementById('usageLegendLabel').textContent = chartMode === 'monthly' ? 'Monthly total' : 'Daily usage';
+  document.getElementById('exportCsv').textContent = chartMode === 'monthly' ? 'Export monthly CSV' : 'Export daily CSV';
+  renderMonthlyBreakdown();
+  drawChart();
+}
+
+function getFilteredUsageRows() {
+  let filtered = [...usageData];
+  if (tableFilter) {
+    const query = tableFilter.toLowerCase();
+    filtered = filtered.filter((entry) =>
+      entry.date.toLowerCase().includes(query)
+      || getFullDayName(entry.date).toLowerCase().includes(query)
+      || formatDate(entry.date).toLowerCase().includes(query)
+    );
+  }
+  if (tableFromDate) filtered = filtered.filter((entry) => entry.date >= tableFromDate);
+  if (tableToDate) filtered = filtered.filter((entry) => entry.date <= tableToDate);
+  if (tableSort === 'highest') return filtered.sort((a, b) => b.usageMB - a.usageMB);
+  if (tableSort === 'lowest') return filtered.sort((a, b) => a.usageMB - b.usageMB);
+  return filtered.reverse();
+}
+
+function csvCell(value) {
+  let text = String(value ?? '');
+  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function downloadCsv(filename, headers, rows) {
+  const csv = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportUsageCsv() {
+  const stamp = getTodayDateString();
+  if (chartMode === 'monthly') {
+    const rows = getMonthlyUsage().map((month) => [
+      month.key,
+      month.label,
+      month.usageMB.toFixed(2),
+      (month.usageMB / 1024).toFixed(4),
+      month.daysTracked,
+      month.averageMB.toFixed(2),
+    ]);
+    downloadCsv(`data-pulse-monthly-${stamp}.csv`, ['Month', 'Label', 'Total MB', 'Total GB', 'Tracked days', 'Average MB per tracked day'], rows);
+    return;
+  }
+
+  const rows = getFilteredUsageRows().map((entry) => [
+    entry.date,
+    getFullDayName(entry.date),
+    Number(entry.usageMB).toFixed(2),
+    (Number(entry.usageMB) / 1024).toFixed(4),
+  ]);
+  downloadCsv(`data-pulse-daily-${stamp}.csv`, ['Date', 'Day', 'Usage MB', 'Usage GB'], rows);
 }
 
 /* ============================================
@@ -819,27 +942,7 @@ function renderTable() {
   const avg = usageData.reduce((sum, d) => sum + d.usageMB, 0) / usageData.length;
   const maxMB = Math.max(...usageData.map((d) => d.usageMB));
 
-  let filtered = [...usageData];
-  if (tableFilter) {
-    const query = tableFilter.toLowerCase();
-    filtered = filtered.filter((d) =>
-      d.date.toLowerCase().includes(query) ||
-      getFullDayName(d.date).toLowerCase().includes(query) ||
-      formatDate(d.date).toLowerCase().includes(query)
-    );
-  }
-
-  if (tableFromDate) filtered = filtered.filter((d) => d.date >= tableFromDate);
-  if (tableToDate) filtered = filtered.filter((d) => d.date <= tableToDate);
-
-  let sorted = [...filtered];
-  if (tableSort === 'highest') {
-    sorted.sort((a, b) => b.usageMB - a.usageMB);
-  } else if (tableSort === 'lowest') {
-    sorted.sort((a, b) => a.usageMB - b.usageMB);
-  } else {
-    sorted.reverse();
-  }
+  const sorted = getFilteredUsageRows();
 
   countEl.textContent = `${sorted.length} records`;
   emptyEl.classList.toggle('hidden', sorted.length > 0);
@@ -911,6 +1014,7 @@ function bindControls() {
   const hostInput = document.getElementById('extensionRouterHost');
   const smsToggle = document.getElementById('smsToggle');
   const smsPanel = document.getElementById('smsPanel');
+  const exportCsv = document.getElementById('exportCsv');
 
   providerSelect.addEventListener('change', () => {
     if (!hostInput.value || ['192.168.1.1', '192.168.0.1'].includes(hostInput.value.trim())) {
@@ -955,6 +1059,12 @@ function bindControls() {
   document.querySelectorAll('.chart-range').forEach((button) => {
     button.addEventListener('click', () => setRange(Number(button.dataset.range)));
   });
+
+  document.querySelectorAll('[data-chart-mode]').forEach((button) => {
+    button.addEventListener('click', () => setChartMode(button.dataset.chartMode));
+  });
+
+  exportCsv.addEventListener('click', exportUsageCsv);
 
   search.addEventListener('input', (event) => {
     tableFilter = event.target.value.trim();

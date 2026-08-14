@@ -20,10 +20,10 @@ The extension opens the dashboard in a full browser tab. See [`extension/README.
 
 ## What the dashboard includes
 
-- **Overview:** latest reading, seven-day total, tracked total, average, a responsive trend chart, filters, and usage history.
+- **Overview:** latest reading, seven-day total, tracked total, average, daily/monthly charts, month-by-month totals, filters, CSV export, and usage history.
 - **Renewals:** bundle transactions, known spend, typical subscription interval, and an estimated next-renewal date inferred from dated SMS records.
 - **Messages:** the source SMS inbox used to build the history, with unreliable numeric sender labels shown as `Router service`.
-- **Network:** a secondary diagnostic view for signal quality, network type, band, RSRP, RSRQ, SINR, RSSI, bandwidth, uptime, firmware, and frequency when the router provides them.
+- **Network:** a secondary diagnostic view for signal quality, network type, band, RSRP, RSRQ, SINR, RSSI, bandwidth, uptime, firmware, and frequency when the router provides them, with plain-language explanations and practical ranges.
 - Airtel/MTN-aware colours and router-address presets.
 - Lazy-loaded history tables and responsive layouts for smaller screens.
 
@@ -39,6 +39,8 @@ Common starting addresses:
 - MTN: `192.168.0.1`
 
 You can edit the address during setup. If the router uses a different firmware API, Data Pulse stops with a clear unsupported-router message instead of showing incorrect totals.
+
+Network diagnostics are optional and firmware-dependent. Data Pulse tries both the pre-login and authenticated status paths used by compatible ZLT/ZTE variants. Usage and renewal history can still work when a router does not expose radio metrics.
 
 ## Privacy model
 

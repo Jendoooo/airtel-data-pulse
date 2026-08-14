@@ -267,16 +267,16 @@ function signalRating(status) {
 
 function normalizeStatus(payload) {
   const status = {
-    networkType: payload.network_type_str || null,
-    sinr: normalizeMetric(payload.SINR),
-    rsrp: normalizeMetric(payload.RSRP),
-    rsrq: normalizeMetric(payload.RSRQ),
-    rssi: normalizeMetric(payload.RSSI),
-    freq: normalizeMetric(payload.FREQ),
-    currentBand: payload.currentband || null,
-    bandwidth: payload.bandwidth || null,
-    uptime: payload.uptime || null,
-    firmwareVersion: payload.fake_version || null,
+    networkType: payload.network_type_str || payload.network_type || payload.networkMode || null,
+    sinr: normalizeMetric(payload.SINR ?? payload.sinr),
+    rsrp: normalizeMetric(payload.RSRP ?? payload.rsrp),
+    rsrq: normalizeMetric(payload.RSRQ ?? payload.rsrq),
+    rssi: normalizeMetric(payload.RSSI ?? payload.rssi),
+    freq: normalizeMetric(payload.FREQ ?? payload.freq ?? payload.frequency),
+    currentBand: payload.currentband || payload.current_band || payload.band || null,
+    bandwidth: payload.bandwidth || payload.band_width || null,
+    uptime: payload.uptime ?? payload.run_time ?? null,
+    firmwareVersion: payload.fake_version || payload.firmware_version || payload.software_version || null,
   };
   status.signalRating = signalRating(status);
   return status;
@@ -284,14 +284,24 @@ function normalizeStatus(payload) {
 
 async function readStatus(settings) {
   const host = cleanHost(settings.host, settings.provider);
-  const sessionId = await getSession(host, settings.username, settings.password);
-  const response = await routerRequest(host, {
-    cmd: STATUS_COMMAND,
-    method: 'GET',
-    sessionId,
-  });
-  if (!response.success) throw new Error('The router did not return signal health');
-  return normalizeStatus(response);
+  const sessionIds = [''];
+  const existingSession = sessions.get(host);
+  if (existingSession) {
+    sessionIds.push(existingSession);
+  } else if (settings.password) {
+    sessionIds.push(await getSession(host, settings.username, settings.password));
+  }
+
+  for (const sessionId of sessionIds) {
+    const response = await routerRequest(host, {
+      cmd: STATUS_COMMAND,
+      method: 'GET',
+      sessionId,
+    });
+    if (response.success) return normalizeStatus(response);
+  }
+
+  throw new Error('This router firmware did not return radio metrics');
 }
 
 async function dashboardData(settings) {

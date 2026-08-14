@@ -1958,3 +1958,83 @@ body.provider-mtn .nav-item.active {
   .router-section[data-view="network"] .signal-meters { padding: 18px; }
   .sms-toggle { width: 100%; justify-content: center; }
 }
+
+/* Network guidance and chart grouping */
+
+.network-guide {
+  margin: 0;
+  padding: 0 24px 24px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+}
+.network-guide summary {
+  padding: 20px 0 16px;
+  color: var(--ink);
+  font-size: .84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.network-guide summary:focus-visible { outline: 3px solid rgba(37, 99, 235, .2); outline-offset: 4px; }
+.network-guide-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--line); }
+.network-guide-grid article { min-width: 0; padding: 17px; background: #fff; }
+.network-guide-grid strong { display: grid; gap: 3px; color: var(--ink); font-size: .78rem; }
+.network-guide-grid strong span { color: var(--accent); font-size: .62rem; letter-spacing: .06em; text-transform: uppercase; }
+.network-guide-grid p { margin: 9px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.58; }
+.network-guide-note { margin: 11px 0 0; color: #7a8495; font-size: .68rem; }
+
+.chart-actions { flex-wrap: wrap; justify-content: flex-end; }
+.chart-mode-controls { display: inline-flex; padding: 3px; border: 1px solid #e2e8f0; border-radius: 9px; background: #f8fafc; }
+.chart-mode {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #718096;
+  font: inherit;
+  font-size: .7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.chart-mode.active { color: var(--accent); background: #fff; box-shadow: 0 1px 3px rgba(16, 24, 40, .08); }
+.chart-mode:focus-visible, .export-csv:focus-visible { outline: 3px solid rgba(37, 99, 235, .2); outline-offset: 2px; }
+.export-csv {
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  background: #fff;
+  color: #344054;
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.export-csv:hover { border-color: #b8c0cc; background: #f9fafb; }
+
+.monthly-breakdown { margin-top: 18px; padding-top: 20px; border-top: 1px solid var(--line); }
+.monthly-breakdown-heading h3 { margin: 0; color: var(--ink); font-size: .95rem; }
+.monthly-breakdown-heading p { margin: 5px 0 14px; color: var(--muted); font-size: .72rem; }
+.monthly-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; }
+.monthly-table { width: 100%; min-width: 620px; border-collapse: collapse; }
+.monthly-table th, .monthly-table td { padding: 12px 14px; border-bottom: 1px solid #eef0f3; color: #475467; font-size: .75rem; text-align: left; }
+.monthly-table th { color: #667085; background: #f8f9fb; font-size: .64rem; letter-spacing: .07em; text-transform: uppercase; }
+.monthly-table tr:last-child td { border-bottom: 0; }
+.monthly-table th:not(:first-child), .monthly-table .numeric-cell { text-align: right; }
+
+body.provider-mtn .chart-mode.active { color: #7a5900; }
+body.provider-mtn .network-guide-grid strong span { color: #7a5900; }
+
+@media (max-width: 980px) {
+  .network-guide-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-actions { justify-content: flex-start; }
+}
+
+@media (max-width: 680px) {
+  .network-guide { padding: 0 18px 18px; }
+  .network-guide-grid { grid-template-columns: 1fr; }
+  .chart-actions { width: 100%; align-items: stretch; flex-direction: row; }
+  .chart-mode-controls { flex: 1 1 auto; }
+  .chart-mode { flex: 1; }
+  .export-csv { width: 100%; }
+}

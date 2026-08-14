@@ -346,25 +346,61 @@
           </div>
         </div>
 
+        <details class="network-guide" open>
+          <summary>What these network terms mean</summary>
+          <div class="network-guide-grid">
+            <article>
+              <strong>RSRP <span>Signal strength</span></strong>
+              <p>The power of the 4G/5G signal reaching the router. Less negative is better: around −80 dBm is strong, −95 dBm is usable, and below −110 dBm is weak.</p>
+            </article>
+            <article>
+              <strong>RSRQ <span>Signal quality</span></strong>
+              <p>How clean the signal is after congestion and interference. Closer to zero is better: −10 dB is good; below roughly −15 dB can be poor.</p>
+            </article>
+            <article>
+              <strong>SINR <span>Clarity</span></strong>
+              <p>The useful signal compared with noise. Above 10 dB is good, 0–10 dB is fair, and below 0 dB usually means heavy interference.</p>
+            </article>
+            <article>
+              <strong>RSSI <span>Total received power</span></strong>
+              <p>A broad strength reading that includes noise and interference. It is supporting context; RSRP, RSRQ, and SINR are more useful for judging mobile data quality.</p>
+            </article>
+            <article>
+              <strong>Band &amp; frequency <span>Radio channel</span></strong>
+              <p>The part of the mobile spectrum in use, such as 5G n78. Higher or lower is not automatically better; coverage and local capacity matter more.</p>
+            </article>
+            <article>
+              <strong>Bandwidth <span>Channel width</span></strong>
+              <p>How much radio spectrum is allocated. Wider channels can carry more data, but actual speed still depends on signal quality, congestion, and the network.</p>
+            </article>
+          </div>
+          <p class="network-guide-note">These are practical guide ranges, not pass/fail guarantees. Different router firmware may omit some readings.</p>
+        </details>
+
       </section>
 
       <section class="chart-section" data-view="overview">
         <div class="chart-header">
           <div>
-            <h2>Daily Data Usage</h2>
-            <span class="chart-caption">Bars show each day · line shows the trend</span>
+            <h2 id="chartTitle">Daily Data Usage</h2>
+            <span class="chart-caption" id="chartCaption">Bars show each day · line shows the trend</span>
           </div>
           <div class="chart-actions">
+            <div class="chart-mode-controls" aria-label="Chart grouping">
+              <button class="chart-mode active" type="button" data-chart-mode="daily" aria-pressed="true">Daily</button>
+              <button class="chart-mode" type="button" data-chart-mode="monthly" aria-pressed="false">Monthly</button>
+            </div>
             <div class="chart-legend" aria-label="Chart legend">
-              <span><i class="legend-dot legend-usage"></i>Daily usage</span>
+              <span><i class="legend-dot legend-usage"></i><span id="usageLegendLabel">Daily usage</span></span>
               <span><i class="legend-dot legend-average"></i>Average</span>
             </div>
-            <div class="chart-controls" aria-label="Chart range">
+            <div class="chart-controls" id="chartRangeControls" aria-label="Chart range">
               <button class="chart-range active" type="button" data-range="7">7D</button>
               <button class="chart-range" type="button" data-range="14">14D</button>
               <button class="chart-range" type="button" data-range="30">30D</button>
               <button class="chart-range" type="button" data-range="9999">All</button>
             </div>
+            <button class="export-csv" id="exportCsv" type="button">Export daily CSV</button>
           </div>
         </div>
         <div class="chart-container" id="chartContainer">
@@ -372,6 +408,20 @@
           <div class="chart-tooltip hidden" id="chartTooltip">
             <div class="tooltip-date" id="tooltipDate"></div>
             <div class="tooltip-value" id="tooltipValue"></div>
+          </div>
+        </div>
+        <div class="monthly-breakdown hidden" id="monthlyBreakdown">
+          <div class="monthly-breakdown-heading">
+            <div>
+              <h3>Month-by-month breakdown</h3>
+              <p>Totals include only the daily readings currently available in the router SMS history.</p>
+            </div>
+          </div>
+          <div class="monthly-table-wrap">
+            <table class="monthly-table">
+              <thead><tr><th>Month</th><th>Total usage</th><th>Tracked days</th><th>Daily average</th></tr></thead>
+              <tbody id="monthlyBreakdownBody"></tbody>
+            </table>
           </div>
         </div>
       </section>
