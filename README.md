@@ -37,6 +37,8 @@ The repository includes a Chrome extension in [`extension/`](extension/). This i
 
 The extension talks directly to the router and keeps the credentials/history inside that Chrome profile. It does not send live router data through Vercel. See [`extension/README.md`](extension/README.md) for testing installation; a Chrome Web Store release would make the final installation one click.
 
+The carrier preset is not a hard-coded router promise: MTN and Airtel use multiple router families. MTN commonly starts at `192.168.0.1`, while Airtel commonly uses `192.168.1.1` or `192.168.0.1`. The extension probes the supported ZLT/ZTE CGI interface and stops with a clear unsupported-model message when a router uses a different firmware API.
+
 ## Use it with your router
 
 ### 1. Connect to the router

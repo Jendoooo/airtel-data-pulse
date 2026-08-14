@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
   <div class="app">
@@ -61,9 +61,16 @@
       <div class="extension-setup-card">
         <span class="eyebrow">One-time setup</span>
         <h2>Connect Data Pulse to your router</h2>
-        <p>Join the Airtel/ZLT Wi-Fi first. Your login is sent directly to the router and your history stays in this Chrome profile.</p>
+        <p>Join the router Wi-Fi first. Your login is sent directly to the router and your history stays in this Chrome profile.</p>
         <form id="extensionSetupForm">
+          <label>Network <select id="extensionProvider">
+            <option value="auto">Auto-detect network</option>
+            <option value="airtel">Airtel</option>
+            <option value="mtn">MTN</option>
+            <option value="other">Other network</option>
+          </select></label>
           <label>Router address <input id="extensionRouterHost" value="192.168.1.1" autocomplete="url" required></label>
+          <p class="address-hint" id="addressHint">Airtel commonly uses 192.168.1.1 · MTN commonly uses 192.168.0.1.</p>
           <label>Username <input id="extensionRouterUsername" value="admin" autocomplete="username" required></label>
           <label>Password <input id="extensionRouterPassword" type="password" autocomplete="current-password" required></label>
           <label class="setup-checkbox"><input id="extensionRememberPassword" type="checkbox"> Remember password on this device</label>

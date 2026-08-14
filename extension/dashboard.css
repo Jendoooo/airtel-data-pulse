@@ -1145,6 +1145,17 @@ select {
   color: #172033;
   font: inherit;
 }
+.extension-setup-card select {
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid #dfe5ed;
+  border-radius: 10px;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+}
+.extension-setup-card select:focus { border-color: var(--airtel-red); box-shadow: 0 0 0 3px rgba(226, 27, 45, .1); outline: none; }
+.address-hint { margin: -5px 0 0; color: #8995a8; font-size: .75rem; }
 .extension-setup-card input:not([type="checkbox"]):focus { border-color: var(--airtel-red); box-shadow: 0 0 0 3px rgba(226, 27, 45, .1); outline: none; }
 .setup-checkbox { display: flex !important; grid-template-columns: none !important; align-items: center; gap: 9px; font-size: .78rem !important; font-weight: 600 !important; }
 .setup-checkbox input { accent-color: var(--airtel-red); }

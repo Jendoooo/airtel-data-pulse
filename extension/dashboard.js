@@ -115,6 +115,30 @@ function cleanExtensionHost(value) {
   return String(value || '192.168.1.1').trim().replace(/^https?:\/\//i, '').split('/')[0];
 }
 
+function defaultExtensionHost(provider) {
+  return provider === 'mtn' ? '192.168.0.1' : '192.168.1.1';
+}
+
+function updateAddressHint() {
+  const provider = document.getElementById('extensionProvider').value;
+  const hint = document.getElementById('addressHint');
+  hint.textContent = provider === 'mtn'
+    ? 'MTN commonly uses 192.168.0.1. Check the router label if yours differs.'
+    : provider === 'airtel'
+      ? 'Airtel commonly uses 192.168.1.1 or 192.168.0.1.'
+      : 'Common router addresses include 192.168.1.1, 192.168.0.1, and 192.168.8.1.';
+}
+
+function populateSetup(settings = {}) {
+  const provider = settings.provider || 'auto';
+  document.getElementById('extensionProvider').value = provider;
+  document.getElementById('extensionRouterHost').value = settings.host || defaultExtensionHost(provider);
+  document.getElementById('extensionRouterUsername').value = settings.username || 'admin';
+  document.getElementById('extensionRouterPassword').value = settings.password || '';
+  document.getElementById('extensionRememberPassword').checked = Boolean(settings.rememberPassword);
+  updateAddressHint();
+}
+
 async function requestRouterPermission(host) {
   const origin = `http://${cleanExtensionHost(host)}/*`;
   const alreadyGranted = await chrome.permissions.contains({ origins: [origin] });
@@ -150,6 +174,7 @@ async function fetchUsageData(settingsOverride = null) {
     const stored = await chrome.storage.local.get(['settings']);
     const settings = settingsOverride || stored.settings;
     if (!settings?.host || !settings?.username || !settings?.password) {
+      populateSetup(settings || {});
       showExtensionSetup();
       return;
     }
@@ -171,6 +196,7 @@ async function fetchUsageData(settingsOverride = null) {
     usageData = result.data;
     currentUsageResult = result;
     routerStatus = routerStatusResult && routerStatusResult.success ? routerStatusResult.data : null;
+    document.querySelector('.logo-sub').textContent = `${result.provider || 'Mobile broadband'} · local-first`;
 
     loadingScreen.classList.add('hidden');
     document.getElementById('extensionSetup').classList.add('hidden');
@@ -178,7 +204,7 @@ async function fetchUsageData(settingsOverride = null) {
 
     if (result.routerConnected) {
       status.classList.add('connected');
-      status.querySelector('span').textContent = 'Router connected';
+      status.querySelector('span').textContent = `${result.provider || 'Router'} connected`;
       cacheNotice.classList.add('hidden');
     } else {
       status.classList.add('connected');
@@ -645,6 +671,15 @@ function bindControls() {
   const loadMoreButton = document.getElementById('loadMoreRows');
   const autoRefreshToggle = document.getElementById('autoRefreshToggle');
   const setupForm = document.getElementById('extensionSetupForm');
+  const providerSelect = document.getElementById('extensionProvider');
+  const hostInput = document.getElementById('extensionRouterHost');
+
+  providerSelect.addEventListener('change', () => {
+    if (!hostInput.value || ['192.168.1.1', '192.168.0.1'].includes(hostInput.value.trim())) {
+      hostInput.value = defaultExtensionHost(providerSelect.value);
+    }
+    updateAddressHint();
+  });
 
   const resetTableView = () => {
     tableVisibleCount = TABLE_PAGE_SIZE;
@@ -654,7 +689,8 @@ function bindControls() {
   setupForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const settings = {
-      host: cleanExtensionHost(document.getElementById('extensionRouterHost').value),
+      provider: providerSelect.value,
+      host: cleanExtensionHost(hostInput.value),
       username: document.getElementById('extensionRouterUsername').value.trim(),
       password: document.getElementById('extensionRouterPassword').value,
       rememberPassword: document.getElementById('extensionRememberPassword').checked,

@@ -1,11 +1,38 @@
-const DEFAULT_HOST = '192.168.1.1';
+const DEFAULT_HOSTS = {
+  auto: '192.168.1.1',
+  airtel: '192.168.1.1',
+  mtn: '192.168.0.1',
+};
 const sessions = new Map();
 const STATUS_COMMAND = '7c6906a3-f7de-4795-a17e-ef032ffacda4';
 
-function cleanHost(value) {
-  const raw = String(value || DEFAULT_HOST).trim().replace(/^https?:\/\//i, '').split('/')[0];
+function cleanProvider(value) {
+  return ['auto', 'airtel', 'mtn', 'other'].includes(value) ? value : 'auto';
+}
+
+function defaultHost(provider) {
+  return DEFAULT_HOSTS[cleanProvider(provider)] || '';
+}
+
+function cleanHost(value, provider = 'auto') {
+  const raw = String(value || defaultHost(provider)).trim().replace(/^https?:\/\//i, '').split('/')[0];
   if (!raw || /[^a-zA-Z0-9.:-]/.test(raw)) throw new Error('Enter the router address, for example 192.168.1.1');
   return raw;
+}
+
+function providerLabel(provider) {
+  return { airtel: 'Airtel', mtn: 'MTN', other: 'Other network', auto: 'Auto-detected network' }[cleanProvider(provider)];
+}
+
+function storedSettings(settings, host) {
+  const provider = cleanProvider(settings.provider);
+  return {
+    host,
+    provider,
+    username: settings.username,
+    password: settings.rememberPassword ? settings.password : '',
+    rememberPassword: Boolean(settings.rememberPassword),
+  };
 }
 
 function routerUrl(host) {
@@ -45,7 +72,7 @@ async function loginToRouter(host, username, password) {
     method: 'GET',
     sessionId: '',
   });
-  if (!init.success) throw new Error('Could not initialise the router login');
+  if (!init.success) throw new Error('This router answered, but it does not expose the supported ZLT/ZTE data interface. Try the router’s other model/address or share its model for an adapter.');
 
   const tokenResponse = await routerRequest(host, {
     cmd: '3830c61a-620d-47da-ae47-33d8401401c4',
@@ -143,7 +170,8 @@ async function readUsage({ host, username, password }) {
 }
 
 async function syncUsage(settings) {
-  const host = cleanHost(settings.host);
+  const provider = cleanProvider(settings.provider);
+  const host = cleanHost(settings.host, provider);
   if (!settings.username || !settings.password) throw new Error('Enter the router username and password');
 
   const usage = await readUsage({ ...settings, host });
@@ -153,12 +181,7 @@ async function syncUsage(settings) {
   };
   await chrome.storage.local.set({
     snapshot,
-    settings: {
-      host,
-      username: settings.username,
-      password: settings.rememberPassword ? settings.password : '',
-      rememberPassword: Boolean(settings.rememberPassword),
-    },
+    settings: storedSettings(settings, host),
   });
   return snapshot;
 }
@@ -201,7 +224,7 @@ function normalizeStatus(payload) {
 }
 
 async function readStatus(settings) {
-  const host = cleanHost(settings.host);
+  const host = cleanHost(settings.host, settings.provider);
   const sessionId = await getSession(host, settings.username, settings.password);
   const response = await routerRequest(host, {
     cmd: STATUS_COMMAND,
@@ -213,7 +236,8 @@ async function readStatus(settings) {
 }
 
 async function dashboardData(settings) {
-  const host = cleanHost(settings.host);
+  const provider = cleanProvider(settings.provider);
+  const host = cleanHost(settings.host, provider);
   const usage = await readUsage({ ...settings, host });
   let status = null;
   try {
@@ -226,9 +250,7 @@ async function dashboardData(settings) {
     snapshot,
     settings: {
       host,
-      username: settings.username,
-      password: settings.rememberPassword ? settings.password : '',
-      rememberPassword: Boolean(settings.rememberPassword),
+      ...storedSettings(settings, host),
     },
   });
   return {
@@ -240,6 +262,8 @@ async function dashboardData(settings) {
     lastSync: snapshot.lastSync,
     hosted: false,
     source: 'local-extension',
+    provider: providerLabel(provider),
+    routerHost: host,
   };
 }
 
