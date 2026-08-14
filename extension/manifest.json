@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Airtel Data Pulse",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "A local-first usage, renewal, and network dashboard for compatible Airtel and MTN routers.",
   "action": {
     "default_title": "Open Airtel Data Pulse"

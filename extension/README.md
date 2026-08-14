@@ -23,7 +23,7 @@ On first use, choose **Airtel**, **MTN**, or **Other network**, confirm the rout
 
 Renewal cadence is an inference from available SMS history, not a guarantee from Airtel or MTN. Transaction IDs are masked in the renewal table.
 
-Missing daily reports are never treated as zero. Short gaps with reported readings on both sides may appear as clearly labelled striped estimates; longer gaps remain **No report**. Estimates are excluded from totals. Monthly bars and exports use reported readings only and include coverage fields so partial months are not mistaken for complete ones.
+Missing daily reports are never treated as zero. Short gaps with reported readings on both sides may appear as clearly labelled striped estimates; longer gaps remain **No report**. Estimates are excluded from official totals. Monthly bars stack reported usage with a separate, clearly labelled coverage-adjusted projection based on the month’s reported-day average. Exports include reported, estimated, projected, and coverage fields; first and last partial months use the observed router window.
 
 ## Privacy
 
@@ -47,7 +47,7 @@ If a router uses a different firmware API, the extension reports that it is unsu
 
 ## After updating the files
 
-If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.8.0`.
+If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.9.0`.
 
 ## Mobile note
 

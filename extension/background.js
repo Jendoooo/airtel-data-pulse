@@ -165,7 +165,7 @@ function usageAmountToMB(value, unit) {
 }
 
 function extractUsageReading(body) {
-  if (!/\bdata\s+usage\b/i.test(body)) return null;
+  if (!/(?:\bdata\s+usage\b|\b(?:used|consumed)\s+[\d,.]+\s*(?:MB|GB|TB)\b)/i.test(body)) return null;
   const datePattern = '(\\d{4}[-/]\\d{2}[-/]\\d{2}|\\d{1,2}[-/]\\d{1,2}[-/]\\d{4})';
   const afterDate = new RegExp(`${datePattern}[^\\d]{0,28}([\\d,.]+)\\s*(MB|GB|TB)\\b`, 'i').exec(body);
   const beforeDate = new RegExp(`(?:was|is|used|usage)\\s*[:=-]?\\s*([\\d,.]+)\\s*(MB|GB|TB)\\b[^\\d]{0,40}${datePattern}`, 'i').exec(body);
@@ -202,11 +202,12 @@ function extractSubscriptions(messages) {
     if (!transactionMatch && !(amountMatch && looksLikeBundle)) continue;
 
     const amountNGN = amountMatch ? Number.parseFloat(amountMatch[1].replace(/,/g, '')) : null;
-    const id = sms.id || transactionMatch?.[1] || `${sms.date || 'unknown'}-${sms.time || subscriptions.size}`;
+    const normalizedDate = normalizeSmsDate(sms.date) || sms.date || null;
+    const id = sms.id || transactionMatch?.[1] || `${normalizedDate || 'unknown'}-${sms.time || subscriptions.size}`;
     const dedupeKey = transactionMatch?.[1] || id;
     subscriptions.set(dedupeKey, {
       id,
-      date: sms.date || null,
+      date: normalizedDate,
       time: sms.time || null,
       sender: sms.sender || null,
       transactionId: transactionMatch?.[1] || null,

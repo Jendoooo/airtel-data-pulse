@@ -28,7 +28,7 @@ The extension opens the dashboard in a full browser tab. See [`extension/README.
 - Airtel/MTN provider badges and a system-native type stack that remains crisp without downloading fonts.
 - Lazy-loaded history tables and responsive layouts for smaller screens.
 
-When a daily SMS is missing, Data Pulse marks the date as unreported instead of counting it as zero. The Daily chart may show a striped estimate for a short gap of up to six missing days when reported readings exist on both sides. Longer gaps stay labelled **No report**. Estimates are excluded from official totals, averages, history rows, and monthly totals. Monthly bars show reported totals and expose their `reported/expected` day coverage in the tooltip and CSV export.
+When a daily SMS is missing, Data Pulse marks the date as unreported instead of counting it as zero. The Daily chart may show a striped estimate for a short gap of up to six missing days when reported readings exist on both sides. Longer gaps stay labelled **No report**. Estimates are excluded from official totals, averages, history rows, and monthly totals. Monthly bars stack reported usage with a separate coverage-adjusted estimate based on that month’s reported-day average; the projected amount is clearly labelled and never replaces the official reported total. First and last partial months use the observed router window rather than assuming a full calendar month.
 
 Renewal estimates depend on the messages still present in the router inbox. They are not carrier billing records and may be incomplete after SMS deletion or a router reset.
 

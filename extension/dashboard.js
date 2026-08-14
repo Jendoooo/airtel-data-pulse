@@ -69,10 +69,15 @@ function maskIdentifier(value) {
 
 function getMonthlyUsage() {
   if (usageData.length === 0) return [];
-  const firstTracked = usageData[0].date;
-  const lastTracked = usageData[usageData.length - 1].date;
+  const datedUsage = usageData
+    .filter((entry) => /^\d{4}-\d{2}-\d{2}$/.test(String(entry.date || '')))
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (datedUsage.length === 0) return [];
+  const firstTracked = datedUsage[0].date;
+  const lastTracked = datedUsage.at(-1).date;
   const months = new Map();
-  usageData.forEach((entry) => {
+  datedUsage.forEach((entry) => {
     const key = String(entry.date || '').slice(0, 7);
     if (!/^\d{4}-\d{2}$/.test(key)) return;
     const current = months.get(key) || { key, date: `${key}-01`, usageMB: 0, daysTracked: 0 };
@@ -87,15 +92,53 @@ function getMonthlyUsage() {
     const coverageStart = monthStart > firstTracked ? monthStart : firstTracked;
     const coverageEnd = monthEnd < lastTracked ? monthEnd : lastTracked;
     const expectedDays = Math.max(1, Math.round((new Date(`${coverageEnd}T00:00:00`) - new Date(`${coverageStart}T00:00:00`)) / 86400000) + 1);
+    const missingDays = Math.max(0, expectedDays - month.daysTracked);
+    const averageMB = month.daysTracked ? month.usageMB / month.daysTracked : 0;
+    // This is deliberately separate from the official total: it is a coverage-adjusted projection
+    // based on the average of the days that were actually reported for this month.
+    const estimatedMB = missingDays > 0 && month.daysTracked > 0
+      ? averageMB * missingDays
+      : 0;
     return {
       ...month,
       expectedDays,
-      missingDays: Math.max(0, expectedDays - month.daysTracked),
+      missingDays,
       coveragePercent: Math.round((month.daysTracked / expectedDays) * 100),
-      averageMB: month.daysTracked ? month.usageMB / month.daysTracked : 0,
+      averageMB,
+      estimatedMB,
+      projectedMB: month.usageMB + estimatedMB,
+      estimateBasis: estimatedMB > 0 ? 'Reported-day average' : 'No estimate needed',
       label: new Date(`${month.date}T00:00:00`).toLocaleDateString('en-NG', { month: 'long', year: 'numeric' }),
     };
   });
+}
+
+function updateMonthlyEstimateCallout(months) {
+  const callout = document.getElementById('monthlyEstimateCallout');
+  if (!callout) return;
+  if (chartMode !== 'monthly' || months.length === 0) {
+    callout.classList.add('hidden');
+    return;
+  }
+
+  const reportedMB = months.reduce((sum, month) => sum + month.usageMB, 0);
+  const estimatedMB = months.reduce((sum, month) => sum + month.estimatedMB, 0);
+  const projectedMB = reportedMB + estimatedMB;
+  const missingDays = months.reduce((sum, month) => sum + month.missingDays, 0);
+  document.getElementById('monthlyProjectedUsage').textContent = `${formatGB(projectedMB)} projected`;
+  document.getElementById('monthlyReportedUsage').textContent = formatGB(reportedMB);
+  document.getElementById('monthlyEstimatedUsage').textContent = estimatedMB > 0 ? formatGB(estimatedMB) : 'None';
+  document.getElementById('monthlyMissingDays').textContent = String(missingDays);
+  const observedUsage = usageData.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const observedStart = observedUsage[0]?.date;
+  const observedEnd = observedUsage.at(-1)?.date;
+  const observedWindow = observedStart && observedEnd
+    ? ` Observed window: ${formatLongDate(observedStart)} – ${formatLongDate(observedEnd)}.`
+    : '';
+  document.getElementById('monthlyEstimateNote').textContent = estimatedMB > 0
+    ? `Projected from the reported-day average; official totals remain reported-only.${observedWindow}`
+    : `All days in the observed period have a reported reading.${observedWindow}`;
+  callout.classList.remove('hidden');
 }
 
 function dateKey(date) {
@@ -775,6 +818,7 @@ function drawChart() {
   const width = rect.width;
   const height = rect.height;
   const data = chartMode === 'monthly' ? getMonthlyUsage().slice(-12) : getDailyChartData(currentRange);
+  updateMonthlyEstimateCallout(data);
   if (data.length === 0) return;
 
   const padding = { top: 24, right: 24, bottom: 52, left: 60 };
@@ -782,7 +826,7 @@ function drawChart() {
   const chartH = height - padding.top - padding.bottom;
   const chartFont = getComputedStyle(document.body).fontFamily;
   const chartAccent = document.body.classList.contains('provider-mtn') ? '#d69e00' : '#e21b2d';
-  const maxMB = Math.max(...data.map((d) => d.usageMB));
+  const maxMB = Math.max(...data.map((d) => chartMode === 'monthly' ? d.projectedMB : d.usageMB));
   const maxGB = Math.ceil(maxMB / 1024);
   const scaleMax = maxGB * 1024;
 
@@ -814,11 +858,11 @@ function drawChart() {
   const offsetX = padding.left + (chartW - totalBarsWidth) / 2;
 
   const averageSource = chartMode === 'monthly' ? data : data.filter((entry) => entry.reported);
-  const avg = averageSource.reduce((sum, d) => sum + d.usageMB, 0) / Math.max(averageSource.length, 1);
+  const avg = averageSource.reduce((sum, d) => sum + (chartMode === 'monthly' ? d.projectedMB : d.usageMB), 0) / Math.max(averageSource.length, 1);
   const avgY = padding.top + chartH * (1 - avg / scaleMax);
   const points = data.map((d, i) => ({
     x: offsetX + barGap + i * (barWidth + barGap) + barWidth / 2,
-    y: padding.top + chartH * (1 - d.usageMB / scaleMax),
+    y: padding.top + chartH * (1 - (chartMode === 'monthly' ? d.projectedMB : d.usageMB) / scaleMax),
   }));
 
   ctx.setLineDash([6, 4]);
@@ -837,9 +881,15 @@ function drawChart() {
 
   data.forEach((d, i) => {
     const x = offsetX + barGap + i * (barWidth + barGap);
-    const barH = (d.usageMB / scaleMax) * chartH;
-    const y = padding.top + chartH - barH;
-    const ratio = d.usageMB / avg;
+    const baseline = padding.top + chartH;
+    const totalMB = chartMode === 'monthly' ? d.projectedMB : d.usageMB;
+    const actualMB = d.usageMB;
+    const estimatedMB = chartMode === 'monthly' ? d.estimatedMB : (d.estimated ? d.usageMB : 0);
+    const barH = (totalMB / scaleMax) * chartH;
+    const actualH = (actualMB / scaleMax) * chartH;
+    const y = baseline - barH;
+    const actualY = baseline - actualH;
+    const ratio = actualMB / avg;
 
     let barColor;
     if (d.estimated) barColor = 'rgba(148, 163, 184, 0.72)';
@@ -847,23 +897,51 @@ function drawChart() {
     else if (ratio > 1.1) barColor = 'rgba(245, 158, 11, 0.85)';
     else barColor = 'rgba(16, 185, 129, 0.85)';
 
-    const grad = ctx.createLinearGradient(x, y, x, padding.top + chartH);
+    const radius = Math.min(barWidth / 2, 6);
+
+    if (chartMode === 'monthly' && estimatedMB > 0) {
+      ctx.beginPath();
+      ctx.moveTo(x, baseline);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.lineTo(x + barWidth - radius, y);
+      ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + radius);
+      ctx.lineTo(x + barWidth, baseline);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.52)';
+      ctx.fill();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, barWidth, Math.max(barH - actualH, 0));
+      ctx.clip();
+      ctx.strokeStyle = 'rgba(255, 255, 255, .78)';
+      ctx.lineWidth = 1;
+      for (let stripe = x - barH; stripe < x + barWidth + barH; stripe += 7) {
+        ctx.beginPath();
+        ctx.moveTo(stripe, baseline);
+        ctx.lineTo(stripe + barH, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    const grad = ctx.createLinearGradient(x, actualY, x, baseline);
     grad.addColorStop(0, barColor);
     grad.addColorStop(1, barColor.replace('0.85', '0.25'));
 
-    const radius = Math.min(barWidth / 2, 6);
     ctx.beginPath();
-    ctx.moveTo(x, padding.top + chartH);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.lineTo(x + barWidth - radius, y);
-    ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + radius);
-    ctx.lineTo(x + barWidth, padding.top + chartH);
+    ctx.moveTo(x, baseline);
+    ctx.lineTo(x, actualY + radius);
+    ctx.quadraticCurveTo(x, actualY, x + radius, actualY);
+    ctx.lineTo(x + barWidth - radius, actualY);
+    ctx.quadraticCurveTo(x + barWidth, actualY, x + barWidth, actualY + radius);
+    ctx.lineTo(x + barWidth, baseline);
     ctx.closePath();
     ctx.fillStyle = grad;
     ctx.fill();
 
-    if (d.estimated && barH > 0) {
+    if (chartMode !== 'monthly' && d.estimated && barH > 0) {
       ctx.save();
       ctx.beginPath();
       ctx.rect(x, y, barWidth, barH);
@@ -883,7 +961,7 @@ function drawChart() {
       ctx.fillStyle = 'rgba(23, 32, 51, 0.84)';
       ctx.textAlign = 'center';
       ctx.font = `700 ${Math.min(10, barWidth * 0.28)}px ${chartFont}`;
-      ctx.fillText(`${(d.usageMB / 1024).toFixed(1)}G`, x + barWidth / 2, y - 8);
+      ctx.fillText(`${(totalMB / 1024).toFixed(1)}G${chartMode === 'monthly' && estimatedMB > 0 ? '*' : ''}`, x + barWidth / 2, y - 8);
     }
 
     if (barWidth > 14 || barCount <= 14) {
@@ -953,7 +1031,7 @@ function setupChartHover(canvas, data, offsetX, barGap, barWidth) {
         ? d.label
         : `${formatDate(d.date)} | ${getFullDayName(d.date)}`;
       document.getElementById('tooltipValue').textContent = chartMode === 'monthly'
-        ? `${formatGB(d.usageMB)} · ${d.daysTracked}/${d.expectedDays} days reported`
+        ? `Reported ${formatGB(d.usageMB)} · estimated ${formatGB(d.estimatedMB)} · projected ${formatGB(d.projectedMB)} · ${d.daysTracked}/${d.expectedDays} days`
         : d.estimated
           ? `Estimated ${formatGB(d.usageMB)} · no carrier SMS`
           : d.missing
@@ -988,10 +1066,12 @@ function setChartMode(mode) {
   document.getElementById('chartRangeControls').classList.toggle('hidden', chartMode === 'monthly');
   document.getElementById('chartTitle').textContent = chartMode === 'monthly' ? 'Monthly Data Usage' : 'Daily Data Usage';
   document.getElementById('chartCaption').textContent = chartMode === 'monthly'
-    ? 'Reported calendar-month totals; hover a bar to see coverage'
+    ? 'Reported usage with a striped coverage estimate for missing days; hover for details'
     : 'Striped bars estimate only short unreported gaps from nearby readings';
-  document.getElementById('usageLegendLabel').textContent = chartMode === 'monthly' ? 'Monthly total' : 'Daily usage';
-  document.getElementById('estimateLegend').classList.toggle('hidden', chartMode === 'monthly');
+  document.getElementById('usageLegendLabel').textContent = chartMode === 'monthly' ? 'Reported total' : 'Daily usage';
+  document.getElementById('estimateLegendLabel').textContent = chartMode === 'monthly' ? 'Estimated portion' : 'Estimated gap';
+  document.getElementById('estimateLegend').classList.remove('hidden');
+  document.getElementById('monthlyEstimateCallout').classList.toggle('hidden', chartMode !== 'monthly');
   document.getElementById('exportCsv').textContent = chartMode === 'monthly' ? 'Export monthly CSV' : 'Export daily CSV';
   drawChart();
 }
@@ -1040,13 +1120,17 @@ function exportUsageCsv() {
       month.label,
       month.usageMB.toFixed(2),
       (month.usageMB / 1024).toFixed(4),
+      month.estimatedMB.toFixed(2),
+      (month.estimatedMB / 1024).toFixed(4),
+      month.projectedMB.toFixed(2),
+      (month.projectedMB / 1024).toFixed(4),
       month.daysTracked,
       month.expectedDays,
       month.missingDays,
       month.coveragePercent,
       month.averageMB.toFixed(2),
     ]);
-    downloadCsv(`data-pulse-monthly-${stamp}.csv`, ['Month', 'Label', 'Reported total MB', 'Reported total GB', 'Reported days', 'Expected days in tracked period', 'Missing reports', 'Coverage percent', 'Average MB per reported day'], rows);
+    downloadCsv(`data-pulse-monthly-${stamp}.csv`, ['Month', 'Label', 'Reported total MB', 'Reported total GB', 'Estimated missing-days MB', 'Estimated missing-days GB', 'Projected total MB', 'Projected total GB', 'Reported days', 'Expected days in tracked period', 'Missing reports', 'Coverage percent', 'Average MB per reported day'], rows);
     return;
   }
 
