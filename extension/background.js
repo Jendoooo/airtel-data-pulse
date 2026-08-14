@@ -119,10 +119,10 @@ function parseSmsEntries(smsList) {
       const match = decoded.match(/^(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)$/s);
       return match ? [{
         id: match[1],
-        sender: match[2],
-        date: match[3],
-        time: match[4],
-        status: match[5],
+        read: match[2] === '1',
+        sender: match[3],
+        date: match[4],
+        time: match[5],
         message: match[6].trim(),
       }] : [{ message: decoded.trim() }];
     } catch {

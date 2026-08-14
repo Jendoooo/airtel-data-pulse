@@ -1417,6 +1417,19 @@ body.provider-other .logo-icon {
   box-shadow: 0 8px 18px rgba(30, 41, 59, 0.2);
 }
 
+.app-nav { display: flex; align-items: center; gap: 4px; margin-left: clamp(18px, 4vw, 56px); margin-right: auto; padding: 4px; border: 1px solid #e3e8ef; border-radius: 12px; background: #f8fafc; }
+.nav-item { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: #718096; font: inherit; font-size: .74rem; font-weight: 800; cursor: pointer; transition: color .18s ease, background .18s ease, transform .18s ease; }
+.nav-item:hover { color: #25334a; transform: translateY(-1px); }
+.nav-item.active { color: var(--airtel-red); background: #fff; box-shadow: 0 3px 9px rgba(25, 39, 64, .08); }
+.nav-item:focus-visible { outline: 3px solid rgba(37, 99, 235, .18); outline-offset: 2px; }
+.nav-icon { display: inline-grid; place-items: center; min-width: 22px; height: 18px; border-radius: 5px; background: #edf1f6; color: #6b778c; font-size: .57rem; letter-spacing: -.03em; }
+.nav-item.active .nav-icon { background: var(--airtel-red-glow); color: var(--airtel-red); }
+.nav-count { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: #e9eef4; color: #718096; font-size: .61rem; }
+.nav-item.active .nav-count { background: var(--airtel-red-glow); color: var(--airtel-red); }
+
+body.provider-mtn .nav-item.active .nav-icon,
+body.provider-mtn .nav-item.active .nav-count { background: rgba(214, 158, 0, .16); }
+
 .chart-header { align-items: flex-end; }
 .chart-caption { display: block; margin-top: 6px; color: #8995a8; font-size: .76rem; }
 .chart-actions { display: flex; align-items: center; gap: 14px; }
@@ -1448,6 +1461,10 @@ body.provider-other .logo-icon {
 .sms-empty { margin: 0; color: #8995a8; font-size: .8rem; }
 
 @media (max-width: 760px) {
+  .header { flex-wrap: wrap; gap: 12px; }
+  .header-right { margin-left: auto; }
+  .app-nav { order: 3; width: 100%; margin: 0; justify-content: space-between; }
+  .nav-item { flex: 1; justify-content: center; }
   .chart-header, .sms-header { align-items: flex-start; flex-direction: column; }
   .chart-actions { width: 100%; align-items: flex-start; flex-direction: column-reverse; gap: 10px; }
   .chart-legend { white-space: normal; }

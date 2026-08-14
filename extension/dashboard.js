@@ -130,6 +130,8 @@ function renderSmsMessages() {
   const empty = document.getElementById('smsEmpty');
   if (!list || !empty) return;
   list.replaceChildren();
+  const navCount = document.getElementById('smsNavCount');
+  if (navCount) navCount.textContent = sourceMessages.length;
   empty.classList.toggle('hidden', sourceMessages.length > 0);
 
   sourceMessages.slice().reverse().forEach((sms) => {
@@ -138,7 +140,7 @@ function renderSmsMessages() {
     const meta = document.createElement('div');
     meta.className = 'sms-meta';
     const sender = document.createElement('strong');
-    sender.textContent = sms.sender || 'Router';
+    sender.textContent = sms.sender && !/^[01]$/.test(String(sms.sender)) ? sms.sender : 'Router service';
     const timestamp = document.createElement('span');
     timestamp.textContent = [sms.date, sms.time].filter(Boolean).join(' · ') || 'Undated message';
     meta.append(sender, timestamp);
@@ -148,6 +150,33 @@ function renderSmsMessages() {
     item.append(meta, message);
     list.append(item);
   });
+}
+
+function setView(view, updateHash = true) {
+  const allowedViews = ['overview', 'network', 'messages'];
+  const activeView = allowedViews.includes(view) ? view : 'overview';
+  document.querySelectorAll('[data-view]').forEach((section) => {
+    section.classList.toggle('hidden', section.dataset.view !== activeView);
+  });
+  document.querySelectorAll('.nav-item').forEach((button) => {
+    const isActive = button.dataset.viewTarget === activeView;
+    button.classList.toggle('active', isActive);
+    if (isActive) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+  if (updateHash && window.location.hash !== `#${activeView}`) {
+    window.history.replaceState(null, '', `#${activeView}`);
+  }
+  if (activeView === 'overview' && usageData.length > 0) {
+    window.requestAnimationFrame(drawChart);
+  }
+}
+
+function bindNavigation() {
+  document.querySelectorAll('.nav-item').forEach((button) => {
+    button.addEventListener('click', () => setView(button.dataset.viewTarget));
+  });
+  window.addEventListener('hashchange', () => setView(window.location.hash.slice(1), false));
 }
 
 /* ============================================
@@ -193,6 +222,7 @@ function showExtensionSetup(message = '') {
   document.getElementById('loadingScreen').classList.add('hidden');
   document.getElementById('errorScreen').classList.add('hidden');
   document.getElementById('dashboard').classList.add('hidden');
+  document.querySelector('.app-nav').classList.add('hidden');
   document.getElementById('extensionSetup').classList.remove('hidden');
   if (message) document.getElementById('setupError').textContent = message;
 }
@@ -204,11 +234,13 @@ async function fetchUsageData(settingsOverride = null) {
   const dashboard = document.getElementById('dashboard');
   const status = document.getElementById('connectionStatus');
   const cacheNotice = document.getElementById('cacheNotice');
+  const appNav = document.querySelector('.app-nav');
 
   refreshBtn.classList.add('spinning');
   loadingScreen.classList.remove('hidden');
   errorScreen.classList.add('hidden');
   dashboard.classList.add('hidden');
+  appNav.classList.add('hidden');
 
   status.className = 'connection-status';
   status.querySelector('span').textContent = 'Connecting...';
@@ -246,6 +278,7 @@ async function fetchUsageData(settingsOverride = null) {
     loadingScreen.classList.add('hidden');
     document.getElementById('extensionSetup').classList.add('hidden');
     dashboard.classList.remove('hidden');
+    appNav.classList.remove('hidden');
 
     if (result.routerConnected) {
       status.classList.add('connected');
@@ -267,6 +300,7 @@ async function fetchUsageData(settingsOverride = null) {
     tableVisibleCount = TABLE_PAGE_SIZE;
     renderTable();
     renderSmsMessages();
+    setView(window.location.hash.slice(1), false);
 
     document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
   } catch (error) {
@@ -882,6 +916,7 @@ window.addEventListener('resize', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   setProviderBrand('auto');
+  bindNavigation();
   bindControls();
   fetchUsageData();
   routerPollTimer = setInterval(refreshRouterStatusOnly, 30000);

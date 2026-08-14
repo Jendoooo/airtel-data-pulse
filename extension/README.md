@@ -12,7 +12,7 @@ This is the easiest version for ordinary Chrome users: connect to the Airtel/ZLT
 6. Pin **Airtel Data Pulse** to the Chrome toolbar.
 7. Connect to the router Wi-Fi and click the extension icon. It opens the full dashboard in a new tab.
 
-The dashboard fills the tab and includes summary cards, a daily chart with trend and average overlays, search/date filters, lazy-loaded history, live signal health when supported, and an opt-in **Router SMS inbox** section. The SMS viewer is local-only and displays message text safely; it does not send the inbox to Vercel or another remote service.
+The dashboard fills the tab and now uses simple **Overview**, **Network**, and **Messages** views so the main screen stays focused. It includes summary cards, a daily chart with trend and average overlays, search/date filters, lazy-loaded history, live signal health when supported, and an opt-in **Router SMS inbox** section. The SMS viewer is local-only, labels the actual sender, and displays message text safely; it does not send the inbox to Vercel or another remote service.
 
 The first connection asks Chrome for permission to talk to the router’s local address. The extension then performs the router login and reads the SMS inbox and safe radio-health metrics directly. It does not use the public Vercel deployment for router access.
 
