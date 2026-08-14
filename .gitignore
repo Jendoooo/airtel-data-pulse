@@ -13,4 +13,5 @@ router-index.js
 .playwright-cli/
 output/playwright/
 output/review-frames/
+output/video-review/
 *.zip
