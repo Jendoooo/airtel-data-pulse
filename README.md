@@ -16,7 +16,7 @@ The Chrome extension is the recommended path for everyday users.
 6. Click the **Airtel Data Pulse** icon.
 7. Choose your network, confirm the router address, and enter the router login.
 
-The extension opens the dashboard in a full browser tab. See [`extension/README.md`](extension/README.md) for the short installation guide and sharing instructions.
+The extension opens the dashboard in a full browser tab. See [`extension/README.md`](extension/README.md) for the short installation guide.
 
 ## What the dashboard includes
 
@@ -46,12 +46,6 @@ You can edit the address during setup. If the router uses a different firmware A
 - There is no analytics, hosted login, or required online account.
 
 Only use the remember-password option on a trusted computer. Never publish `.env`, router passwords, `data/usage.json`, or personal SMS exports.
-
-## Sharing it with someone
-
-For a technical tester, send the `Airtel-Data-Pulse-Chrome-Extension.zip` file or the GitHub repository. They should extract the ZIP first and select the extracted `extension` folder in Chrome's **Load unpacked** screen. The ZIP itself is not opened directly by Chrome as an installed extension.
-
-For ordinary users, the Chrome Web Store would eventually provide a one-click installation, but it is not required for this local project. The current sharing route is the repository or ZIP plus the short setup above.
 
 ## Optional developer mode
 

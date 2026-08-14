@@ -28,25 +28,6 @@ On first use, choose **Airtel**, **MTN**, or **Other network**, confirm the rout
 - There is no analytics or background upload of router data.
 - Use **Remember password on this device** only on a trusted computer.
 
-## Sharing with other people
-
-### Quick ZIP sharing
-
-Send `Airtel-Data-Pulse-Chrome-Extension.zip` through Drive, email, WhatsApp, or another file-sharing service. Tell the recipient to:
-
-1. Download and extract the ZIP.
-2. Open `chrome://extensions`.
-3. Enable **Developer mode**.
-4. Choose **Load unpacked**.
-5. Select the extracted `extension` folder.
-6. Connect to their own router Wi-Fi and enter their own router credentials.
-
-Do not send router passwords, private snapshots, or exported SMS data with the ZIP. The recipient must select the extracted folder, not the ZIP file itself.
-
-### Repository sharing
-
-Share the GitHub repository when you want people to inspect the code or contribute. The extension folder is the only folder needed for the Chrome installation.
-
 ## Router compatibility
 
 The adapter currently targets the ZLT/ZTE CGI and SMS interface used by the original setup. Airtel and MTN use multiple router models, so the carrier preset changes the common address but does not guarantee that every model has the same API.
