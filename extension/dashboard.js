@@ -113,6 +113,26 @@ function getMonthlyUsage() {
   });
 }
 
+function getWeekdayUsage() {
+  const totals = Array.from({ length: 7 }, (_, index) => ({
+    weekday: index,
+    label: new Date(2026, 5, 7 + index).toLocaleDateString('en-NG', { weekday: 'short' }),
+    totalMB: 0,
+    daysTracked: 0,
+  }));
+  usageData.forEach((entry) => {
+    const date = new Date(`${entry.date}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return;
+    const day = totals[date.getDay()];
+    day.totalMB += Number(entry.usageMB) || 0;
+    day.daysTracked += 1;
+  });
+  return totals.map((day) => ({
+    ...day,
+    usageMB: day.daysTracked ? day.totalMB / day.daysTracked : 0,
+  }));
+}
+
 function updateMonthlyEstimateCallout(months) {
   const callout = document.getElementById('monthlyEstimateCallout');
   if (!callout) return;
@@ -769,6 +789,14 @@ function updateStats() {
   document.getElementById('monthUsage').textContent = formatGB(totalAll);
   document.getElementById('monthDays').textContent = `${usageData.length} days · ${formatRawGB(totalAll)}`;
 
+  const monthlyUsage = getMonthlyUsage();
+  const projectedTotal = monthlyUsage.reduce((sum, month) => sum + month.projectedMB, 0);
+  const estimatedTotal = monthlyUsage.reduce((sum, month) => sum + month.estimatedMB, 0);
+  document.getElementById('projectedUsage').textContent = formatGB(projectedTotal);
+  document.getElementById('projectedSub').textContent = estimatedTotal > 0
+    ? `${formatGB(estimatedTotal)} missing estimate · not official`
+    : 'All reported in observed period';
+
   const avgAll = totalAll / usageData.length;
   document.getElementById('avgUsage').textContent = formatGB(avgAll);
   document.getElementById('avgPeriod').textContent = `Over ${usageData.length} days`;
@@ -817,7 +845,11 @@ function drawChart() {
 
   const width = rect.width;
   const height = rect.height;
-  const data = chartMode === 'monthly' ? getMonthlyUsage().slice(-12) : getDailyChartData(currentRange);
+  const data = chartMode === 'monthly'
+    ? getMonthlyUsage().slice(-12)
+    : chartMode === 'weekday'
+      ? getWeekdayUsage()
+      : getDailyChartData(currentRange);
   updateMonthlyEstimateCallout(data);
   if (data.length === 0) return;
 
@@ -857,7 +889,7 @@ function drawChart() {
   const totalBarsWidth = barCount * barWidth + (barCount + 1) * barGap;
   const offsetX = padding.left + (chartW - totalBarsWidth) / 2;
 
-  const averageSource = chartMode === 'monthly' ? data : data.filter((entry) => entry.reported);
+  const averageSource = chartMode === 'monthly' || chartMode === 'weekday' ? data : data.filter((entry) => entry.reported);
   const avg = averageSource.reduce((sum, d) => sum + (chartMode === 'monthly' ? d.projectedMB : d.usageMB), 0) / Math.max(averageSource.length, 1);
   const avgY = padding.top + chartH * (1 - avg / scaleMax);
   const points = data.map((d, i) => ({
@@ -970,14 +1002,18 @@ function drawChart() {
       ctx.textAlign = 'center';
       const primaryLabel = chartMode === 'monthly'
         ? new Date(`${d.date}T00:00:00`).toLocaleDateString('en-NG', { month: 'short' })
-        : formatDate(d.date);
+        : chartMode === 'weekday'
+          ? d.label
+          : formatDate(d.date);
       ctx.fillText(primaryLabel, x + barWidth / 2, height - padding.bottom + 16);
 
       ctx.fillStyle = '#9aa5b5';
       ctx.font = `500 ${Math.min(9, barWidth * 0.25)}px ${chartFont}`;
       const secondaryLabel = chartMode === 'monthly'
         ? `${d.daysTracked}/${d.expectedDays} days`
-        : d.estimated ? 'estimated' : d.missing ? 'no report' : getDayName(d.date);
+        : chartMode === 'weekday'
+          ? `${d.daysTracked} reported`
+          : d.estimated ? 'estimated' : d.missing ? 'no report' : getDayName(d.date);
       ctx.fillText(secondaryLabel, x + barWidth / 2, height - padding.bottom + 28);
     }
   });
@@ -1029,14 +1065,18 @@ function setupChartHover(canvas, data, offsetX, barGap, barWidth) {
       const d = data[barIndex];
       document.getElementById('tooltipDate').textContent = chartMode === 'monthly'
         ? d.label
-        : `${formatDate(d.date)} | ${getFullDayName(d.date)}`;
+        : chartMode === 'weekday'
+          ? `${d.label} average`
+          : `${formatDate(d.date)} | ${getFullDayName(d.date)}`;
       document.getElementById('tooltipValue').textContent = chartMode === 'monthly'
         ? `Reported ${formatGB(d.usageMB)} · estimated ${formatGB(d.estimatedMB)} · projected ${formatGB(d.projectedMB)} · ${d.daysTracked}/${d.expectedDays} days`
-        : d.estimated
-          ? `Estimated ${formatGB(d.usageMB)} · no carrier SMS`
-          : d.missing
-            ? 'No carrier SMS · not counted'
-            : formatGB(d.usageMB);
+        : chartMode === 'weekday'
+          ? `${formatGB(d.usageMB)} average · ${d.daysTracked} reported days · ${formatGB(d.totalMB)} total`
+          : d.estimated
+            ? `Estimated ${formatGB(d.usageMB)} · no carrier SMS`
+            : d.missing
+              ? 'No carrier SMS · not counted'
+              : formatGB(d.usageMB);
       tooltip.classList.remove('hidden');
       tooltip.style.left = `${Math.min(e.clientX - rect.left + 12, rect.width - 160)}px`;
       tooltip.style.top = `${e.clientY - rect.top - 60}px`;
@@ -1057,22 +1097,36 @@ function setRange(range) {
 }
 
 function setChartMode(mode) {
-  chartMode = mode === 'monthly' ? 'monthly' : 'daily';
+  chartMode = ['monthly', 'weekday'].includes(mode) ? mode : 'daily';
   document.querySelectorAll('[data-chart-mode]').forEach((button) => {
     const active = button.dataset.chartMode === chartMode;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
-  document.getElementById('chartRangeControls').classList.toggle('hidden', chartMode === 'monthly');
-  document.getElementById('chartTitle').textContent = chartMode === 'monthly' ? 'Monthly Data Usage' : 'Daily Data Usage';
+  document.getElementById('chartRangeControls').classList.toggle('hidden', chartMode !== 'daily');
+  document.getElementById('chartTitle').textContent = chartMode === 'monthly'
+    ? 'Monthly Data Usage'
+    : chartMode === 'weekday'
+      ? 'Average Usage by Weekday'
+      : 'Daily Data Usage';
   document.getElementById('chartCaption').textContent = chartMode === 'monthly'
     ? 'Reported usage with a striped coverage estimate for missing days; hover for details'
-    : 'Striped bars estimate only short unreported gaps from nearby readings';
-  document.getElementById('usageLegendLabel').textContent = chartMode === 'monthly' ? 'Reported total' : 'Daily usage';
+    : chartMode === 'weekday'
+      ? 'Average reported usage per weekday; missing and estimated days are excluded'
+      : 'Striped bars estimate only short unreported gaps from nearby readings';
+  document.getElementById('usageLegendLabel').textContent = chartMode === 'monthly'
+    ? 'Reported total'
+    : chartMode === 'weekday'
+      ? 'Average reported'
+      : 'Daily usage';
   document.getElementById('estimateLegendLabel').textContent = chartMode === 'monthly' ? 'Estimated portion' : 'Estimated gap';
-  document.getElementById('estimateLegend').classList.remove('hidden');
+  document.getElementById('estimateLegend').classList.toggle('hidden', chartMode === 'weekday');
   document.getElementById('monthlyEstimateCallout').classList.toggle('hidden', chartMode !== 'monthly');
-  document.getElementById('exportCsv').textContent = chartMode === 'monthly' ? 'Export monthly CSV' : 'Export daily CSV';
+  document.getElementById('exportCsv').textContent = chartMode === 'monthly'
+    ? 'Export monthly CSV'
+    : chartMode === 'weekday'
+      ? 'Export weekday CSV'
+      : 'Export daily CSV';
   drawChart();
 }
 
@@ -1131,6 +1185,19 @@ function exportUsageCsv() {
       month.averageMB.toFixed(2),
     ]);
     downloadCsv(`data-pulse-monthly-${stamp}.csv`, ['Month', 'Label', 'Reported total MB', 'Reported total GB', 'Estimated missing-days MB', 'Estimated missing-days GB', 'Projected total MB', 'Projected total GB', 'Reported days', 'Expected days in tracked period', 'Missing reports', 'Coverage percent', 'Average MB per reported day'], rows);
+    return;
+  }
+
+  if (chartMode === 'weekday') {
+    const rows = getWeekdayUsage().map((day) => [
+      day.label,
+      day.daysTracked,
+      day.totalMB.toFixed(2),
+      (day.totalMB / 1024).toFixed(4),
+      day.usageMB.toFixed(2),
+      (day.usageMB / 1024).toFixed(4),
+    ]);
+    downloadCsv(`data-pulse-weekday-${stamp}.csv`, ['Weekday', 'Reported days', 'Reported total MB', 'Reported total GB', 'Average per reported day MB', 'Average per reported day GB'], rows);
     return;
   }
 

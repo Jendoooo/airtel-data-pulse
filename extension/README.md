@@ -16,14 +16,14 @@ On first use, choose **Airtel**, **MTN**, or **Other network**, confirm the rout
 
 ## Dashboard views
 
-- **Overview** keeps the main screen focused on reported totals, Daily/Monthly chart tabs in one workspace, missing-report estimates, filters, CSV export, and daily history.
+- **Overview** keeps the main screen focused on reported totals, a separate projected-period total, Daily/Monthly/Weekday chart tabs in one workspace, missing-report estimates, filters, CSV export, and daily history.
 - **Renewals** identifies bundle transaction messages, calculates known spend, and estimates the typical interval and next renewal when at least two dated events exist.
 - **Messages** shows the source SMS inbox. Numeric sender values such as `0` or `1` are labelled `Router service`, and content is rendered safely as text.
 - **Network** combines radio and device health with an optional speed test. It reports download, upload, latency, and what the result should comfortably handle for common household activities. The included glossary explains RSRP, RSRQ, SINR, RSSI, band, frequency, and bandwidth.
 
 Renewal cadence is an inference from available SMS history, not a guarantee from Airtel or MTN. Transaction IDs are masked in the renewal table.
 
-Missing daily reports are never treated as zero. Short gaps with reported readings on both sides may appear as clearly labelled striped estimates; longer gaps remain **No report**. Estimates are excluded from official totals. Monthly bars stack reported usage with a separate, clearly labelled coverage-adjusted projection based on the month’s reported-day average. Exports include reported, estimated, projected, and coverage fields; first and last partial months use the observed router window.
+Missing daily reports are never treated as zero. Short gaps with reported readings on both sides may appear as clearly labelled striped estimates; longer gaps remain **No report**. Estimates are excluded from official totals. Monthly bars stack reported usage with a separate, clearly labelled coverage-adjusted projection based on the month’s reported-day average. The top-level projected-period card is an additive view of reported usage plus those missing-day estimates; it never replaces the official tracked total. Weekday analysis shows average reported usage per weekday so weekdays with more calendar occurrences do not look artificially larger. Exports include reported, estimated, projected, and coverage fields; first and last partial months use the observed router window, so the current month is not projected into future dates beyond the latest router message.
 
 ## Privacy
 
@@ -47,7 +47,7 @@ If a router uses a different firmware API, the extension reports that it is unsu
 
 ## After updating the files
 
-If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.9.0`.
+If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `1.0.0`.
 
 ## Mobile note
 
