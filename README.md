@@ -25,6 +25,18 @@ Router Wi-Fi → local Node server → private data/usage.json → browser dashb
 
 Vercel can host the interface and a demo snapshot, but a Vercel Function cannot initiate a connection to `192.168.x.x` or another private router address. Live readings therefore happen from the local dashboard while your computer is connected to the router Wi-Fi.
 
+## Easiest option for Chrome users
+
+The repository includes a Chrome extension in [`extension/`](extension/). This is the intended non-technical flow:
+
+1. Install the extension once.
+2. Connect Chrome to the Airtel/ZLT router Wi-Fi.
+3. Click the **Airtel Data Pulse** icon.
+4. Enter the router address, username, and password.
+5. View the usage history directly in the extension.
+
+The extension talks directly to the router and keeps the credentials/history inside that Chrome profile. It does not send live router data through Vercel. See [`extension/README.md`](extension/README.md) for testing installation; a Chrome Web Store release would make the final installation one click.
+
 ## Use it with your router
 
 ### 1. Connect to the router

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Airtel Data Pulse</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="brand-row">
+      <div class="brand-mark">↯</div>
+      <div>
+        <p class="kicker">PRIVATE ROUTER DASHBOARD</p>
+        <h1>Data Pulse</h1>
+      </div>
+      <span class="privacy-dot" title="Your data stays in Chrome">Local</span>
+    </header>
+
+    <section id="setupView" class="card setup-card">
+      <p class="eyebrow">One-time setup</p>
+      <h2>Connect your Airtel router</h2>
+      <p class="muted">Join the router Wi-Fi first. Your login is sent directly to the router and is never sent to Data Pulse or Vercel.</p>
+      <form id="setupForm">
+        <label>Router address <input id="routerHost" value="192.168.1.1" autocomplete="url" required></label>
+        <label>Username <input id="routerUsername" value="admin" autocomplete="username" required></label>
+        <label>Password <input id="routerPassword" type="password" autocomplete="current-password" required></label>
+        <label class="checkbox-row"><input id="rememberPassword" type="checkbox"> Remember password on this device</label>
+        <button class="primary-button" type="submit">Connect and read usage</button>
+      </form>
+      <p class="permission-note">Chrome will ask for permission to talk to your router’s local address.</p>
+    </section>
+
+    <section id="dashboardView" class="hidden">
+      <div class="dashboard-heading">
+        <div>
+          <p class="eyebrow">Usage overview</p>
+          <h2 id="connectionTitle">Connected</h2>
+          <p class="muted" id="lastSync">-</p>
+        </div>
+        <button class="icon-button" id="refreshButton" type="button" title="Refresh usage">↻</button>
+      </div>
+
+      <div class="metric-grid">
+        <article class="metric-card accent-red"><span>Latest reading</span><strong id="latestUsage">-</strong><small id="latestDate">-</small></article>
+        <article class="metric-card accent-blue"><span>Last 7 days</span><strong id="weekUsage">-</strong><small id="weekAverage">-</small></article>
+        <article class="metric-card accent-purple"><span>Tracked total</span><strong id="totalUsage">-</strong><small id="trackedDays">-</small></article>
+      </div>
+
+      <div class="section-heading"><h3>Daily usage</h3><span id="recordCount">0 days</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Day</th><th>Usage</th></tr></thead>
+          <tbody id="usageRows"></tbody>
+        </table>
+      </div>
+
+      <button class="secondary-button" id="editSettings" type="button">Router settings</button>
+      <p class="privacy-footnote">Private mode · Usage history is stored only in this Chrome profile.</p>
+    </section>
+
+    <p id="errorMessage" class="error-message hidden" role="alert"></p>
+    <div id="loadingMessage" class="loading-message hidden">Reading your router…</div>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

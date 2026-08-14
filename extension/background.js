@@ -1,0 +1,173 @@
+const DEFAULT_HOST = '192.168.1.1';
+const sessions = new Map();
+
+function cleanHost(value) {
+  const raw = String(value || DEFAULT_HOST).trim().replace(/^https?:\/\//i, '').split('/')[0];
+  if (!raw || /[^a-zA-Z0-9.:-]/.test(raw)) throw new Error('Enter the router address, for example 192.168.1.1');
+  return raw;
+}
+
+function routerUrl(host) {
+  return `http://${host}/cgi-bin/http.cgi`;
+}
+
+async function routerRequest(host, body) {
+  const response = await fetch(routerUrl(host), {
+    method: 'POST',
+    cache: 'no-store',
+    headers: {
+      'Content-Type': 'application/json;charset=UTF-8',
+      'Accept': 'application/json, text/plain, */*',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) throw new Error(`Router returned HTTP ${response.status}`);
+  const payload = await response.json();
+  if (!payload || typeof payload !== 'object') throw new Error('Router returned an invalid response');
+  return payload;
+}
+
+function bytesToHex(bytes) {
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256Hex(value) {
+  const encoded = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest('SHA-256', encoded);
+  return bytesToHex(new Uint8Array(digest));
+}
+
+async function loginToRouter(host, username, password) {
+  const init = await routerRequest(host, {
+    cmd: '9f2861ee-baf8-4038-bab6-774ad4e930b0',
+    method: 'GET',
+    sessionId: '',
+  });
+  if (!init.success) throw new Error('Could not initialise the router login');
+
+  const tokenResponse = await routerRequest(host, {
+    cmd: '3830c61a-620d-47da-ae47-33d8401401c4',
+    method: 'GET',
+    sessionId: '',
+  });
+  if (!tokenResponse.success || !tokenResponse.token) throw new Error('The router did not provide a login token');
+
+  const token = tokenResponse.token;
+  const sessionId = bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
+  const login = await routerRequest(host, {
+    username,
+    passwd: await sha256Hex(token + password),
+    token,
+    sessionId,
+    cmd: 'd2aa9843-494b-4947-9621-a46ec652ecd9',
+    method: 'POST',
+  });
+
+  if (!login.success || login.login_fail === 'fail' || !login.sessionId) {
+    throw new Error('Router login failed. Check the address, username, and password.');
+  }
+
+  sessions.set(host, login.sessionId);
+  return login.sessionId;
+}
+
+async function getSession(host, username, password, forceLogin = false) {
+  if (!forceLogin && sessions.has(host)) return sessions.get(host);
+  return loginToRouter(host, username, password);
+}
+
+function decodeBase64(value) {
+  const binary = atob(value);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function parseSmsEntries(smsList) {
+  if (!smsList) return [];
+  return String(smsList).split(',').flatMap((entry) => {
+    try {
+      const decoded = decodeBase64(entry);
+      const match = decoded.match(/^(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)$/s);
+      return match ? [{ message: match[6].trim() }] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function extractUsage(messages) {
+  const regex = /data usage on (\d+) for (\d{4}-\d{2}-\d{2}) was ([\d.]+) MB/i;
+  const byDate = new Map();
+
+  for (const message of messages) {
+    const match = message.message.match(regex);
+    if (!match) continue;
+    const usageMB = Number.parseFloat(match[3]);
+    if (!Number.isFinite(usageMB)) continue;
+    byDate.set(match[2], {
+      date: match[2],
+      usageMB,
+      usageGB: Number((usageMB / 1024).toFixed(4)),
+    });
+  }
+
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+async function readUsage({ host, username, password }) {
+  let sessionId = await getSession(host, username, password);
+  let response = await routerRequest(host, {
+    page_num: -1,
+    subcmd: 0,
+    cmd: 'ee71744e-50b4-4d2a-9c2d-0c4c7b968fc5',
+    method: 'GET',
+    sessionId,
+  });
+
+  if (!response.success) {
+    sessions.delete(host);
+    sessionId = await getSession(host, username, password, true);
+    response = await routerRequest(host, {
+      page_num: -1,
+      subcmd: 0,
+      cmd: 'ee71744e-50b4-4d2a-9c2d-0c4c7b968fc5',
+      method: 'GET',
+      sessionId,
+    });
+  }
+
+  if (!response.success) throw new Error('The router did not return its SMS inbox');
+  return extractUsage(parseSmsEntries(response.sms_list));
+}
+
+async function syncUsage(settings) {
+  const host = cleanHost(settings.host);
+  if (!settings.username || !settings.password) throw new Error('Enter the router username and password');
+
+  const usage = await readUsage({ ...settings, host });
+  const snapshot = {
+    usage,
+    lastSync: new Date().toISOString(),
+  };
+  await chrome.storage.local.set({
+    snapshot,
+    settings: {
+      host,
+      username: settings.username,
+      password: settings.rememberPassword ? settings.password : '',
+      rememberPassword: Boolean(settings.rememberPassword),
+    },
+  });
+  return snapshot;
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type !== 'sync') return undefined;
+
+  syncUsage(message.settings)
+    .then((snapshot) => sendResponse({ success: true, snapshot }))
+    .catch((error) => sendResponse({ success: false, error: error.message || 'Could not read the router' }));
+
+  return true;
+});
