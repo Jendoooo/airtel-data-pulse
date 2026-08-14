@@ -12,6 +12,8 @@ This is the easiest version for ordinary Chrome users: connect to the Airtel/ZLT
 6. Pin **Airtel Data Pulse** to the Chrome toolbar.
 7. Connect to the router Wi-Fi and click the extension icon. It opens the full dashboard in a new tab.
 
+The dashboard fills the tab and includes summary cards, a daily chart with trend and average overlays, search/date filters, lazy-loaded history, live signal health when supported, and an opt-in **Router SMS inbox** section. The SMS viewer is local-only and displays message text safely; it does not send the inbox to Vercel or another remote service.
+
 The first connection asks Chrome for permission to talk to the router’s local address. The extension then performs the router login and reads the SMS inbox and safe radio-health metrics directly. It does not use the public Vercel deployment for router access.
 
 Choose **MTN** to start with `192.168.0.1`, or **Airtel** to start with `192.168.1.1`. You can edit the address for either carrier because the carrier name and router model are not always the same thing.
@@ -32,6 +34,16 @@ data usage on <number> for YYYY-MM-DD was <number> MB
 ```
 
 For broad public distribution, package this folder through the Chrome Web Store after testing against the target router model. The store version will make installation much easier than **Load unpacked**.
+
+## Sharing with other people
+
+### Quick testing package
+
+You can send `Airtel-Data-Pulse-Chrome-Extension.zip` to a technical tester. They must unzip it, open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the unzipped `extension` folder. A ZIP by itself is not a one-click Chrome installation.
+
+### Public release
+
+For non-technical users, publish the extension through the Chrome Web Store and share the store link. Before submitting, test the actual router model, explain the local-router permission, and disclose the local storage of credentials/history/source SMS. Do not publish `.env`, router passwords, `data/usage.json`, or personal SMS exports.
 
 ### Router compatibility
 

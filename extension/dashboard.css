@@ -1386,3 +1386,70 @@ body {
   .table-footer { align-items: flex-start; flex-direction: column; }
   .load-more { width: 100%; }
 }
+
+/* ============================================
+   Provider identity, richer chart, source SMS
+   ============================================ */
+
+body.provider-mtn {
+  --airtel-red: #d69e00;
+  --airtel-red-glow: rgba(214, 158, 0, 0.18);
+  --accent-primary: #d69e00;
+  --border-active: rgba(214, 158, 0, 0.38);
+}
+
+body.provider-mtn .logo-icon {
+  color: #172033;
+  background: linear-gradient(135deg, #ffdc4d, #f2b705);
+  box-shadow: 0 8px 18px rgba(214, 158, 0, 0.22);
+}
+
+body.provider-mtn .eyebrow,
+body.provider-mtn .chart-range:hover,
+body.provider-mtn .clear-filters:hover,
+body.provider-mtn .load-more:hover { color: #a16207; }
+
+body.provider-mtn .chart-range.active,
+body.provider-mtn .setup-submit { background: #d69e00; }
+
+body.provider-other .logo-icon {
+  background: linear-gradient(135deg, #475569, #1e293b);
+  box-shadow: 0 8px 18px rgba(30, 41, 59, 0.2);
+}
+
+.chart-header { align-items: flex-end; }
+.chart-caption { display: block; margin-top: 6px; color: #8995a8; font-size: .76rem; }
+.chart-actions { display: flex; align-items: center; gap: 14px; }
+.chart-legend { display: flex; align-items: center; gap: 12px; color: #718096; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; }
+.legend-usage { background: #e21b2d; box-shadow: 0 0 0 3px rgba(226, 27, 45, .1); }
+.legend-average { background: #6366f1; }
+.chart-range, .clear-filters, .load-more, .refresh-btn, .sms-toggle, .setup-submit, .retry-btn { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease; }
+.chart-range:focus-visible, .clear-filters:focus-visible, .load-more:focus-visible, .refresh-btn:focus-visible, .sms-toggle:focus-visible, .setup-submit:focus-visible, .retry-btn:focus-visible { outline: 3px solid rgba(37, 99, 235, .2); outline-offset: 2px; }
+.refresh-btn:hover, .sms-toggle:hover, .setup-submit:hover, .retry-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(25, 39, 64, .1); }
+
+.sms-section { margin-top: 22px; padding: clamp(20px, 3vw, 30px); border: 1px solid #e1e7ef; border-radius: 22px; background: #fff; box-shadow: var(--shadow-md); }
+.sms-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.sms-header h2 { margin: 5px 0 6px; color: #172033; font-size: 1.1rem; }
+.sms-header p { margin: 0; color: #8995a8; font-size: .8rem; }
+.sms-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid #dfe5ed; border-radius: 10px; background: #fff; color: #334155; font: inherit; font-size: .78rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.sms-toggle svg { transition: transform .18s ease; }
+.sms-toggle.is-open { color: var(--airtel-red); border-color: var(--border-active); background: #fff8f8; }
+.sms-toggle.is-open svg { transform: rotate(180deg); }
+.sms-panel { margin-top: 20px; padding-top: 18px; border-top: 1px solid #edf0f4; }
+.sms-privacy-note { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 10px; border: 1px solid #cce8dc; border-radius: 9px; background: #f5fcf8; color: #08704d; font-size: .72rem; font-weight: 700; }
+.privacy-lock { color: #12805c; font-size: .6rem; }
+.sms-list { display: grid; gap: 9px; max-height: 420px; overflow: auto; padding-right: 4px; }
+.sms-item { padding: 13px 14px; border: 1px solid #e5eaf1; border-radius: 12px; background: #fbfcfe; }
+.sms-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #25334a; font-size: .76rem; }
+.sms-meta span { color: #8995a8; font-size: .68rem; }
+.sms-message { margin: 8px 0 0; color: #536175; font-size: .8rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sms-empty { margin: 0; color: #8995a8; font-size: .8rem; }
+
+@media (max-width: 760px) {
+  .chart-header, .sms-header { align-items: flex-start; flex-direction: column; }
+  .chart-actions { width: 100%; align-items: flex-start; flex-direction: column-reverse; gap: 10px; }
+  .chart-legend { white-space: normal; }
+  .sms-toggle { width: 100%; justify-content: center; }
+}

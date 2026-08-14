@@ -6,6 +6,7 @@ let usageData = [];
 let currentRange = 7;
 let routerStatus = null;
 let currentUsageResult = null;
+let sourceMessages = [];
 let tableFilter = '';
 let tableSort = 'recent';
 let tableFromDate = '';
@@ -107,6 +108,48 @@ function meterPercent(value, min, max) {
   return clamp(((Number(value) - min) / (max - min)) * 100, 0, 100);
 }
 
+function setProviderBrand(providerKey = 'auto') {
+  const key = String(providerKey || 'auto').toLowerCase();
+  const provider = key.includes('mtn') ? 'mtn' : key.includes('airtel') ? 'airtel' : 'other';
+  document.body.classList.remove('provider-airtel', 'provider-mtn', 'provider-other');
+  document.body.classList.add(`provider-${provider}`);
+
+  const favicon = document.getElementById('appFavicon');
+  if (!favicon) return;
+  const isMtn = provider === 'mtn';
+  const isAirtel = provider === 'airtel';
+  const color = isMtn ? '#ffcc00' : isAirtel ? '#e21b2d' : '#334155';
+  const initial = isMtn ? 'M' : isAirtel ? 'A' : 'D';
+  const textColor = isMtn ? '#172033' : '#ffffff';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="${color}"/><text x="50" y="68" text-anchor="middle" font-family="Arial" font-size="58" font-weight="700" fill="${textColor}">${initial}</text></svg>`;
+  favicon.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function renderSmsMessages() {
+  const list = document.getElementById('smsList');
+  const empty = document.getElementById('smsEmpty');
+  if (!list || !empty) return;
+  list.replaceChildren();
+  empty.classList.toggle('hidden', sourceMessages.length > 0);
+
+  sourceMessages.slice().reverse().forEach((sms) => {
+    const item = document.createElement('article');
+    item.className = 'sms-item';
+    const meta = document.createElement('div');
+    meta.className = 'sms-meta';
+    const sender = document.createElement('strong');
+    sender.textContent = sms.sender || 'Router';
+    const timestamp = document.createElement('span');
+    timestamp.textContent = [sms.date, sms.time].filter(Boolean).join(' · ') || 'Undated message';
+    meta.append(sender, timestamp);
+    const message = document.createElement('p');
+    message.className = 'sms-message';
+    message.textContent = sms.message || 'Unreadable message';
+    item.append(meta, message);
+    list.append(item);
+  });
+}
+
 /* ============================================
    Data Fetching
    ============================================ */
@@ -195,7 +238,9 @@ async function fetchUsageData(settingsOverride = null) {
 
     usageData = result.data;
     currentUsageResult = result;
+    sourceMessages = Array.isArray(result.messages) ? result.messages : [];
     routerStatus = routerStatusResult && routerStatusResult.success ? routerStatusResult.data : null;
+    setProviderBrand(result.providerKey || result.provider);
     document.querySelector('.logo-sub').textContent = `${result.provider || 'Mobile broadband'} · local-first`;
 
     loadingScreen.classList.add('hidden');
@@ -221,6 +266,7 @@ async function fetchUsageData(settingsOverride = null) {
     drawChart();
     tableVisibleCount = TABLE_PAGE_SIZE;
     renderTable();
+    renderSmsMessages();
 
     document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
   } catch (error) {
@@ -432,6 +478,7 @@ function drawChart() {
   const padding = { top: 24, right: 24, bottom: 52, left: 60 };
   const chartW = width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
+  const chartAccent = document.body.classList.contains('provider-mtn') ? '#d69e00' : '#e21b2d';
   const maxMB = Math.max(...data.map((d) => d.usageMB));
   const maxGB = Math.ceil(maxMB / 1024);
   const scaleMax = maxGB * 1024;
@@ -465,6 +512,10 @@ function drawChart() {
 
   const avg = data.reduce((sum, d) => sum + d.usageMB, 0) / data.length;
   const avgY = padding.top + chartH * (1 - avg / scaleMax);
+  const points = data.map((d, i) => ({
+    x: offsetX + barGap + i * (barWidth + barGap) + barWidth / 2,
+    y: padding.top + chartH * (1 - d.usageMB / scaleMax),
+  }));
 
   ctx.setLineDash([6, 4]);
   ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
@@ -525,6 +576,38 @@ function drawChart() {
       ctx.fillText(getDayName(d.date), x + barWidth / 2, height - padding.bottom + 28);
     }
   });
+
+  if (points.length > 1) {
+    const areaBottom = padding.top + chartH;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, areaBottom);
+    points.forEach((point) => ctx.lineTo(point.x, point.y));
+    ctx.lineTo(points[points.length - 1].x, areaBottom);
+    ctx.closePath();
+    ctx.fillStyle = document.body.classList.contains('provider-mtn') ? 'rgba(214, 158, 0, 0.10)' : 'rgba(226, 27, 45, 0.07)';
+    ctx.fill();
+
+    ctx.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.strokeStyle = chartAccent;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    points.forEach((point) => {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = chartAccent;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+  }
 
   setupChartHover(canvas, data, offsetX, barGap, barWidth);
 }
@@ -673,6 +756,8 @@ function bindControls() {
   const setupForm = document.getElementById('extensionSetupForm');
   const providerSelect = document.getElementById('extensionProvider');
   const hostInput = document.getElementById('extensionRouterHost');
+  const smsToggle = document.getElementById('smsToggle');
+  const smsPanel = document.getElementById('smsPanel');
 
   providerSelect.addEventListener('change', () => {
     if (!hostInput.value || ['192.168.1.1', '192.168.0.1'].includes(hostInput.value.trim())) {
@@ -755,6 +840,14 @@ function bindControls() {
     renderTable();
   });
 
+  smsToggle.addEventListener('click', () => {
+    const isOpen = !smsPanel.classList.contains('hidden');
+    smsPanel.classList.toggle('hidden', isOpen);
+    smsToggle.setAttribute('aria-expanded', String(!isOpen));
+    document.getElementById('smsToggleLabel').textContent = isOpen ? 'Show source SMS' : 'Hide source SMS';
+    smsToggle.classList.toggle('is-open', !isOpen);
+  });
+
   autoRefreshToggle.addEventListener('change', (event) => {
     autoRefreshEnabled = event.target.checked;
     document.getElementById('livePollStatus').textContent = autoRefreshEnabled ? 'Every 30s' : 'Paused';
@@ -788,6 +881,7 @@ window.addEventListener('resize', () => {
    ============================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
+  setProviderBrand('auto');
   bindControls();
   fetchUsageData();
   routerPollTimer = setInterval(refreshRouterStatusOnly, 30000);

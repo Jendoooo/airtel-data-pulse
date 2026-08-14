@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Data Pulse · Privacy-first dashboard</title>
   <meta name="description" content="A privacy-first dashboard for daily mobile broadband usage and router health.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>A</text></svg>">
+  <link id="appFavicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%23e21b2d'/><text x='50' y='68' text-anchor='middle' font-family='Arial' font-size='58' font-weight='700' fill='white'>D</text></svg>">
   <meta name="theme-color" content="#f8fafc">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -321,12 +321,21 @@
 
       <section class="chart-section">
         <div class="chart-header">
-          <h2>Daily Data Usage</h2>
-          <div class="chart-controls">
-            <button class="chart-range active" type="button" data-range="7">7D</button>
-            <button class="chart-range" type="button" data-range="14">14D</button>
-            <button class="chart-range" type="button" data-range="30">30D</button>
-            <button class="chart-range" type="button" data-range="9999">All</button>
+          <div>
+            <h2>Daily Data Usage</h2>
+            <span class="chart-caption">Bars show each day · line shows the trend</span>
+          </div>
+          <div class="chart-actions">
+            <div class="chart-legend" aria-label="Chart legend">
+              <span><i class="legend-dot legend-usage"></i>Daily usage</span>
+              <span><i class="legend-dot legend-average"></i>Average</span>
+            </div>
+            <div class="chart-controls" aria-label="Chart range">
+              <button class="chart-range active" type="button" data-range="7">7D</button>
+              <button class="chart-range" type="button" data-range="14">14D</button>
+              <button class="chart-range" type="button" data-range="30">30D</button>
+              <button class="chart-range" type="button" data-range="9999">All</button>
+            </div>
           </div>
         </div>
         <div class="chart-container" id="chartContainer">
@@ -386,6 +395,25 @@
             <span id="tableSummary">Showing 0 records</span>
             <button class="load-more hidden" id="loadMoreRows" type="button">Load more rows</button>
           </div>
+        </div>
+      </section>
+
+      <section class="sms-section">
+        <div class="sms-header">
+          <div>
+            <span class="eyebrow">Source messages</span>
+            <h2>Router SMS inbox</h2>
+            <p>See the private messages Data Pulse used to build your usage history.</p>
+          </div>
+          <button class="sms-toggle" id="smsToggle" type="button" aria-expanded="false" aria-controls="smsPanel">
+            <span id="smsToggleLabel">Show source SMS</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+        <div class="sms-panel hidden" id="smsPanel">
+          <div class="sms-privacy-note"><span class="privacy-lock">●</span> Local only — SMS content is never sent to Vercel or a remote service.</div>
+          <div class="sms-list" id="smsList"></div>
+          <p class="sms-empty hidden" id="smsEmpty">No readable SMS messages were returned by this router.</p>
         </div>
       </section>
 

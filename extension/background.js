@@ -117,7 +117,14 @@ function parseSmsEntries(smsList) {
     try {
       const decoded = decodeBase64(entry);
       const match = decoded.match(/^(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)$/s);
-      return match ? [{ message: match[6].trim() }] : [];
+      return match ? [{
+        id: match[1],
+        sender: match[2],
+        date: match[3],
+        time: match[4],
+        status: match[5],
+        message: match[6].trim(),
+      }] : [{ message: decoded.trim() }];
     } catch {
       return [];
     }
@@ -166,7 +173,8 @@ async function readUsage({ host, username, password }) {
   }
 
   if (!response.success) throw new Error('The router did not return its SMS inbox');
-  return extractUsage(parseSmsEntries(response.sms_list));
+  const messages = parseSmsEntries(response.sms_list);
+  return { usage: extractUsage(messages), messages };
 }
 
 async function syncUsage(settings) {
@@ -174,9 +182,10 @@ async function syncUsage(settings) {
   const host = cleanHost(settings.host, provider);
   if (!settings.username || !settings.password) throw new Error('Enter the router username and password');
 
-  const usage = await readUsage({ ...settings, host });
+  const { usage, messages } = await readUsage({ ...settings, host });
   const snapshot = {
     usage,
+    messages,
     lastSync: new Date().toISOString(),
   };
   await chrome.storage.local.set({
@@ -238,14 +247,14 @@ async function readStatus(settings) {
 async function dashboardData(settings) {
   const provider = cleanProvider(settings.provider);
   const host = cleanHost(settings.host, provider);
-  const usage = await readUsage({ ...settings, host });
+  const { usage, messages } = await readUsage({ ...settings, host });
   let status = null;
   try {
     status = await readStatus({ ...settings, host });
   } catch {
     // Usage remains useful when this router firmware does not expose radio health.
   }
-  const snapshot = { usage, lastSync: new Date().toISOString() };
+  const snapshot = { usage, messages, lastSync: new Date().toISOString() };
   await chrome.storage.local.set({
     snapshot,
     settings: {
@@ -262,8 +271,10 @@ async function dashboardData(settings) {
     lastSync: snapshot.lastSync,
     hosted: false,
     source: 'local-extension',
+    providerKey: provider,
     provider: providerLabel(provider),
     routerHost: host,
+    messages,
   };
 }
 

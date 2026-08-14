@@ -35,7 +35,15 @@ The repository includes a Chrome extension in [`extension/`](extension/). This i
 4. Enter the router address, username, and password.
 5. View the full dashboard in a new Chrome tab: summary cards, chart, router health, filters, and usage history.
 
-The extension talks directly to the router and keeps the credentials/history inside that Chrome profile. It does not send live router data through Vercel. See [`extension/README.md`](extension/README.md) for testing installation; a Chrome Web Store release would make the final installation one click.
+The extension talks directly to the router and keeps the credentials/history inside that Chrome profile. It does not send live router data through Vercel. The dashboard now includes a trend-overlay chart, provider-aware Airtel/MTN identity, lazy-loaded history, and an opt-in source-SMS viewer. Raw SMS content stays local to the extension and is rendered as text.
+
+### How to share it
+
+- **For technical testers:** share the extension ZIP or repository. They unzip it, open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the `extension` folder.
+- **For ordinary users:** publish the extension folder through the Chrome Web Store and share the store link. They should not need to handle a ZIP or Developer mode.
+- **Before public release:** test the target router model, document the local-router permission, and disclose that credentials, usage history, and source SMS are stored locally in Chrome. Never include `.env`, router credentials, or `data/usage.json` in the ZIP or repository.
+
+The ZIP is a convenience package for testing, not a one-click consumer installer. Chrome Web Store publication is the smoother public-sharing route.
 
 The carrier preset is not a hard-coded router promise: MTN and Airtel use multiple router families. MTN commonly starts at `192.168.0.1`, while Airtel commonly uses `192.168.1.1` or `192.168.0.1`. The extension probes the supported ZLT/ZTE CGI interface and stops with a clear unsupported-model message when a router uses a different firmware API.
 
