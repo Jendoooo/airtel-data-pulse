@@ -11,4 +11,8 @@ For a private report, contact the repository owner directly with:
 
 This project is designed for local use. Do not expose the local server directly to the public internet without adding authentication, HTTPS, and a deliberate data store.
 
-The Chrome extension stores credentials and history locally for convenience. Use "Remember password on this device" only on a trusted Chrome profile.
+The Chrome extension stores credentials and history locally for convenience. Chrome local storage is not a password vault, so use "Remember password on this device" only on a trusted, encrypted computer profile. Leave it unchecked on shared computers.
+
+The extension declares optional access to local HTTP router addresses, but asks Chrome for only the specific router origin entered during setup. It does not request HTTPS or remote-code permissions.
+
+When `BIND_HOST=0.0.0.0` is used for phone access, anyone on the same Wi-Fi may be able to open the local dashboard. Use that mode only on a trusted private network and stop the Node process when finished.

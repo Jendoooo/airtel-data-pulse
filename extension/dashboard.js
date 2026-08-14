@@ -6,6 +6,7 @@ let usageData = [];
 let currentRange = 7;
 let routerStatus = null;
 let sourceMessages = [];
+let subscriptionEvents = [];
 let tableFilter = '';
 let tableSort = 'recent';
 let tableFromDate = '';
@@ -35,6 +36,28 @@ function formatRawGB(mb) {
 function formatDate(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatLongDate(dateStr) {
+  if (!dateStr) return '-';
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatNaira(value) {
+  if (!Number.isFinite(Number(value))) return 'Not stated';
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(Number(value));
+}
+
+function maskIdentifier(value) {
+  const text = String(value || 'Not stated');
+  if (text.length <= 6) return text;
+  return `••••${text.slice(-6)}`;
 }
 
 function getDayName(dateStr) {
@@ -151,8 +174,91 @@ function renderSmsMessages() {
   });
 }
 
+function renderSubscriptions() {
+  const navCount = document.getElementById('renewalNavCount');
+  const tableBody = document.getElementById('renewalTableBody');
+  const empty = document.getElementById('renewalEmpty');
+  const visual = document.getElementById('cadenceVisual');
+  if (!tableBody || !empty || !visual) return;
+
+  const events = subscriptionEvents.slice().sort((a, b) => {
+    const left = `${a.date || ''}T${a.time || ''}`;
+    const right = `${b.date || ''}T${b.time || ''}`;
+    return left.localeCompare(right);
+  });
+  if (navCount) navCount.textContent = events.length;
+  document.getElementById('renewalCount').textContent = String(events.length);
+  tableBody.replaceChildren();
+  visual.replaceChildren();
+  empty.classList.toggle('hidden', events.length > 0);
+
+  const datedEvents = events.filter((event) => event.date && !Number.isNaN(new Date(`${event.date}T00:00:00`).getTime()));
+  const intervals = datedEvents.slice(1).map((event, index) => {
+    const current = new Date(`${event.date}T00:00:00`);
+    const previous = new Date(`${datedEvents[index].date}T00:00:00`);
+    return Math.round((current - previous) / 86400000);
+  }).filter((days) => days > 0);
+  const sortedIntervals = intervals.slice().sort((a, b) => a - b);
+  const middle = Math.floor(sortedIntervals.length / 2);
+  const medianDays = sortedIntervals.length === 0
+    ? null
+    : sortedIntervals.length % 2
+      ? sortedIntervals[middle]
+      : Math.round((sortedIntervals[middle - 1] + sortedIntervals[middle]) / 2);
+
+  const last = datedEvents.at(-1);
+  const knownSpend = events.reduce((total, event) => total + (Number(event.amountNGN) || 0), 0);
+  document.getElementById('lastRenewal').textContent = last ? formatLongDate(last.date) : '-';
+  document.getElementById('knownSpend').textContent = knownSpend > 0 ? formatNaira(knownSpend) : '-';
+
+  if (medianDays && last) {
+    const nextDate = new Date(`${last.date}T00:00:00`);
+    nextDate.setDate(nextDate.getDate() + medianDays);
+    document.getElementById('renewalCadence').textContent = `About every ${medianDays} days`;
+    document.getElementById('renewalCadenceNote').textContent = `Based on ${intervals.length} interval${intervals.length === 1 ? '' : 's'} in the available inbox history.`;
+    document.getElementById('nextRenewal').textContent = nextDate.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+  } else {
+    document.getElementById('renewalCadence').textContent = events.length === 1 ? 'One renewal found' : 'Not enough data';
+    document.getElementById('renewalCadenceNote').textContent = 'Two dated bundle transactions are needed to estimate a cycle.';
+    document.getElementById('nextRenewal').textContent = '-';
+  }
+
+  datedEvents.forEach((event, index) => {
+    const point = document.createElement('div');
+    point.className = 'cadence-point';
+    const marker = document.createElement('i');
+    marker.setAttribute('aria-hidden', 'true');
+    const copy = document.createElement('div');
+    const date = document.createElement('strong');
+    date.textContent = formatDate(event.date);
+    const detail = document.createElement('span');
+    const interval = index > 0 ? intervals[index - 1] : null;
+    detail.textContent = interval ? `${interval} days later` : formatNaira(event.amountNGN);
+    copy.append(date, detail);
+    point.append(marker, copy);
+    visual.append(point);
+  });
+
+  events.slice().reverse().forEach((event) => {
+    const row = document.createElement('tr');
+    const values = [
+      formatLongDate(event.date),
+      maskIdentifier(event.transactionId),
+      event.sender && !/^[01]$/.test(String(event.sender)) ? event.sender : 'Router service',
+      formatNaira(event.amountNGN),
+    ];
+    values.forEach((value, index) => {
+      const cell = document.createElement('td');
+      cell.textContent = value;
+      if (index === 3) cell.className = 'renewal-amount';
+      row.append(cell);
+    });
+    tableBody.append(row);
+  });
+}
+
 function setView(view, updateHash = true) {
-  const allowedViews = ['overview', 'network', 'messages'];
+  const allowedViews = ['overview', 'renewals', 'messages', 'network'];
   const activeView = allowedViews.includes(view) ? view : 'overview';
   document.querySelectorAll('[data-view]').forEach((section) => {
     section.classList.toggle('hidden', section.dataset.view !== activeView);
@@ -272,6 +378,7 @@ async function fetchUsageData(settingsOverride = null) {
 
     usageData = result.data;
     sourceMessages = Array.isArray(result.messages) ? result.messages : [];
+    subscriptionEvents = Array.isArray(result.subscriptions) ? result.subscriptions : [];
     routerStatus = routerStatusResult && routerStatusResult.success ? routerStatusResult.data : null;
     setProviderBrand(result.providerKey || result.provider);
     document.querySelector('.logo-sub').textContent = `${result.provider || 'Mobile broadband'} · local-first`;
@@ -305,6 +412,7 @@ async function fetchUsageData(settingsOverride = null) {
     tableVisibleCount = TABLE_PAGE_SIZE;
     renderTable();
     renderSmsMessages();
+    renderSubscriptions();
     setView(window.location.hash.slice(1), false);
 
     document.getElementById('lastUpdate').textContent = new Date().toLocaleString();

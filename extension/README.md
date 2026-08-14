@@ -4,7 +4,7 @@ The easiest way to use Data Pulse: connect to your router Wi-Fi, click the exten
 
 ## Install for testing
 
-1. Download or clone the repository.
+1. Download the extension ZIP from the repository's latest GitHub release and extract it, or clone the repository.
 2. Open `chrome://extensions` in Chrome.
 3. Turn on **Developer mode**.
 4. Choose **Load unpacked**.
@@ -17,8 +17,11 @@ On first use, choose **Airtel**, **MTN**, or **Other network**, confirm the rout
 ## Dashboard views
 
 - **Overview** keeps the main screen focused on totals, the usage trend, filters, and daily history.
-- **Network** uses a router-control workspace with a live status rail, ODU visual, and radio/device health when the router exposes it.
-- **Messages** shows the source SMS inbox only when you open it. The actual sender and message date are shown, and the content is rendered safely as text.
+- **Renewals** identifies bundle transaction messages, calculates known spend, and estimates the typical interval and next renewal when at least two dated events exist.
+- **Messages** shows the source SMS inbox. Numeric sender values such as `0` or `1` are labelled `Router service`, and content is rendered safely as text.
+- **Network** is a compact secondary diagnostic view for radio and device health when the router exposes it.
+
+Renewal cadence is an inference from available SMS history, not a guarantee from Airtel or MTN. Transaction IDs are masked in the renewal table.
 
 ## Privacy
 
@@ -41,4 +44,8 @@ If a router uses a different firmware API, the extension reports that it is unsu
 
 ## After updating the files
 
-If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.4.0`.
+If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.5.0`.
+
+## Mobile note
+
+Chrome does not install extensions on mobile devices. The root project README documents an optional same-Wi-Fi local-server route for viewing the dashboard from a phone.

@@ -98,7 +98,20 @@ async function loginToRouter(host, username, password) {
   });
 
   if (!login.success || login.login_fail === 'fail' || !login.sessionId) {
-    throw new Error('Router login failed. Check the address, username, and password.');
+    const lockDetails = [
+      login.locked,
+      login.account_locked,
+      login.lock_time,
+      login.remaining_time,
+      login.login_fail_reason,
+    ].filter(Boolean).join(' ');
+    const isLocked = login.locked === true
+      || login.account_locked === true
+      || /lock|\d+\s*:\s*\d+/i.test(lockDetails);
+    if (isLocked) {
+      throw new Error('The router account is temporarily locked. Stop retrying, wait for the router timer to finish, then sign in once with the same credentials used on the router portal.');
+    }
+    throw new Error('Router login failed. Check the address, username, and password before trying again to avoid an account lock.');
   }
 
   sessions.set(host, login.sessionId);
@@ -155,6 +168,37 @@ function extractUsage(messages) {
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
+function extractSubscriptions(messages) {
+  const subscriptions = new Map();
+
+  for (const sms of messages) {
+    const body = String(sms.message || '');
+    const transactionMatch = body.match(/\bTXN[_\s-]*ID\s*:\s*([A-Z0-9.-]+)/i);
+    const amountMatch = body.match(/\bBundle\s*Amt(?:ount)?\s*:\s*(?:NGN|N|₦)?\s*([\d,]+(?:\.\d{1,2})?)/i);
+    const looksLikeBundle = /\b(bundle|renew(?:al|ed)?|subscrib(?:e|ed|ption))\b/i.test(body);
+    if (!transactionMatch && !(amountMatch && looksLikeBundle)) continue;
+
+    const amountNGN = amountMatch ? Number.parseFloat(amountMatch[1].replace(/,/g, '')) : null;
+    const id = sms.id || transactionMatch?.[1] || `${sms.date || 'unknown'}-${sms.time || subscriptions.size}`;
+    const dedupeKey = transactionMatch?.[1] || id;
+    subscriptions.set(dedupeKey, {
+      id,
+      date: sms.date || null,
+      time: sms.time || null,
+      sender: sms.sender || null,
+      transactionId: transactionMatch?.[1] || null,
+      amountNGN: Number.isFinite(amountNGN) ? amountNGN : null,
+      message: body.trim(),
+    });
+  }
+
+  return [...subscriptions.values()].sort((a, b) => {
+    const left = `${a.date || ''}T${a.time || ''}`;
+    const right = `${b.date || ''}T${b.time || ''}`;
+    return left.localeCompare(right);
+  });
+}
+
 async function readUsage({ host, username, password }) {
   let sessionId = await getSession(host, username, password);
   let response = await routerRequest(host, {
@@ -179,7 +223,7 @@ async function readUsage({ host, username, password }) {
 
   if (!response.success) throw new Error('The router did not return its SMS inbox');
   const messages = parseSmsEntries(response.sms_list);
-  return { usage: extractUsage(messages), messages };
+  return { usage: extractUsage(messages), subscriptions: extractSubscriptions(messages), messages };
 }
 
 async function syncUsage(settings) {
@@ -187,9 +231,10 @@ async function syncUsage(settings) {
   const host = cleanHost(settings.host, provider);
   if (!settings.username || !settings.password) throw new Error('Enter the router username and password');
 
-  const { usage, messages } = await readUsage({ ...settings, host });
+  const { usage, subscriptions, messages } = await readUsage({ ...settings, host });
   const snapshot = {
     usage,
+    subscriptions,
     messages,
     lastSync: new Date().toISOString(),
   };
@@ -252,14 +297,14 @@ async function readStatus(settings) {
 async function dashboardData(settings) {
   const provider = cleanProvider(settings.provider);
   const host = cleanHost(settings.host, provider);
-  const { usage, messages } = await readUsage({ ...settings, host });
+  const { usage, subscriptions, messages } = await readUsage({ ...settings, host });
   let status = null;
   try {
     status = await readStatus({ ...settings, host });
   } catch {
     // Usage remains useful when this router firmware does not expose radio health.
   }
-  const snapshot = { usage, messages, lastSync: new Date().toISOString() };
+  const snapshot = { usage, subscriptions, messages, lastSync: new Date().toISOString() };
   await chrome.storage.local.set({
     snapshot,
     settings: {
@@ -280,6 +325,7 @@ async function dashboardData(settings) {
     provider: providerLabel(provider),
     routerHost: host,
     routerModel: routerMetadata.get(host)?.modelName || null,
+    subscriptions,
     messages,
   };
 }

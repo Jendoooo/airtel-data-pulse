@@ -12,4 +12,5 @@ router-index.js
 .playwright-mcp/
 .playwright-cli/
 output/playwright/
+output/review-frames/
 *.zip

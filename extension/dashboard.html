@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Data Pulse · Privacy-first dashboard</title>
+  <title>Data Pulse · Private usage dashboard</title>
   <meta name="description" content="A privacy-first dashboard for daily mobile broadband usage and router health.">
   <link id="appFavicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%23e21b2d'/><text x='50' y='68' text-anchor='middle' font-family='Arial' font-size='58' font-weight='700' fill='white'>D</text></svg>">
   <meta name="theme-color" content="#f8fafc">
@@ -14,12 +14,6 @@
 </head>
 <body>
   <div class="app">
-    <div class="ambient-bg">
-      <div class="orb orb-1"></div>
-      <div class="orb orb-2"></div>
-      <div class="orb orb-3"></div>
-    </div>
-
     <header class="header" id="header">
       <div class="header-left">
         <div class="logo">
@@ -38,11 +32,14 @@
         <button class="nav-item active" type="button" data-view-target="overview" aria-current="page">
           <span class="nav-icon">01</span> Overview
         </button>
-        <button class="nav-item" type="button" data-view-target="network">
-          <span class="nav-icon">RF</span> Network
+        <button class="nav-item" type="button" data-view-target="renewals">
+          <span class="nav-icon">02</span> Renewals <span class="nav-count" id="renewalNavCount">0</span>
         </button>
         <button class="nav-item" type="button" data-view-target="messages">
-          <span class="nav-icon">SMS</span> Messages <span class="nav-count" id="smsNavCount">0</span>
+          <span class="nav-icon">03</span> Messages <span class="nav-count" id="smsNavCount">0</span>
+        </button>
+        <button class="nav-item" type="button" data-view-target="network">
+          <span class="nav-icon">04</span> Network
         </button>
       </nav>
       <div class="header-right">
@@ -248,12 +245,45 @@
         </div>
       </section>
 
+      <section class="renewals-section" data-view="renewals">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">Bundle history</span>
+            <h2>Subscription cadence</h2>
+            <p>Renewals inferred from transaction messages in the router inbox.</p>
+          </div>
+          <span class="estimate-badge">Estimated from SMS</span>
+        </div>
+        <div class="renewal-hero">
+          <div class="renewal-cadence">
+            <span>Typical cycle</span>
+            <strong id="renewalCadence">Not enough data</strong>
+            <p id="renewalCadenceNote">Two dated bundle transactions are needed to estimate a cycle.</p>
+          </div>
+          <dl class="renewal-stats">
+            <div><dt>Renewals found</dt><dd id="renewalCount">0</dd></div>
+            <div><dt>Last renewal</dt><dd id="lastRenewal">-</dd></div>
+            <div><dt>Known spend</dt><dd id="knownSpend">-</dd></div>
+            <div><dt>Next expected</dt><dd id="nextRenewal">-</dd></div>
+          </dl>
+        </div>
+        <div class="cadence-visual" id="cadenceVisual" aria-label="Subscription event timeline"></div>
+        <div class="renewal-table-wrap">
+          <table class="renewal-table">
+            <thead><tr><th>Date</th><th>Transaction</th><th>Sender</th><th>Amount</th></tr></thead>
+            <tbody id="renewalTableBody"></tbody>
+          </table>
+          <p class="renewal-empty" id="renewalEmpty">No bundle transaction messages were found.</p>
+        </div>
+        <p class="renewal-disclaimer">Cadence and next-renewal dates are estimates from message history, not carrier billing records.</p>
+      </section>
+
       <section class="router-section" data-view="network">
         <div class="router-section-header">
           <div>
-            <span class="eyebrow">Network workspace</span>
-            <h2>Live Router Health</h2>
-            <p>Radio performance and device status from the local router interface.</p>
+            <span class="eyebrow">Connection details</span>
+            <h2>Network diagnostics</h2>
+            <p>A compact troubleshooting readout. Use the router portal itself for configuration.</p>
           </div>
           <div class="router-health-pill" id="routerHealthPill" aria-live="polite">Checking...</div>
         </div>
@@ -271,34 +301,14 @@
             </div>
           </aside>
 
-          <div class="router-stage">
-            <div class="router-stage-title">
-              <strong id="routerModel">Router ODU</strong>
-              <span id="networkType">-</span>
+          <div class="network-identity">
+            <span class="console-label">Connection</span>
+            <div class="network-identity-list">
+              <div><span>Router</span><strong id="routerModel">Router</strong></div>
+              <div><span>Network</span><strong id="networkType">-</strong></div>
+              <div><span>Band</span><strong id="currentBand">-</strong></div>
+              <div><span>Frequency</span><strong id="freqValue">-</strong></div>
             </div>
-            <div class="signal-orbit orbit-one"></div>
-            <div class="signal-orbit orbit-two"></div>
-            <div class="signal-orbit orbit-three"></div>
-            <div class="router-device" aria-hidden="true">
-              <svg viewBox="0 0 150 270" role="img">
-                <defs>
-                  <linearGradient id="oduBody" x1="0" x2="1"><stop offset="0" stop-color="#f5f6f8"/><stop offset=".45" stop-color="#ffffff"/><stop offset="1" stop-color="#dce0e6"/></linearGradient>
-                  <linearGradient id="oduSide" x1="0" x2="1"><stop offset="0" stop-color="#d9dde3"/><stop offset="1" stop-color="#b9c0ca"/></linearGradient>
-                  <filter id="oduShadow"><feDropShadow dx="0" dy="12" stdDeviation="9" flood-color="#6f7680" flood-opacity=".28"/></filter>
-                </defs>
-                <g filter="url(#oduShadow)">
-                  <path d="M43 17Q43 7 53 5L105 18Q113 20 113 30V203Q113 211 105 214L54 229Q43 231 43 219Z" fill="url(#oduBody)"/>
-                  <path d="M105 18L118 25V197Q118 207 105 214V30Q105 22 105 18Z" fill="url(#oduSide)"/>
-                  <path d="M67 228H91V246H67Z" fill="#c9ced6"/>
-                  <path d="M60 246H98V258H60Z" rx="4" fill="#aeb6c1"/>
-                  <path d="M65 258H93V266H65Z" fill="#7f8996"/>
-                  <circle cx="77" cy="198" r="3" fill="#26b76a"/>
-                </g>
-              </svg>
-            </div>
-            <div class="stage-chip stage-chip-left"><span>Band</span><strong id="currentBand">-</strong></div>
-            <div class="stage-chip stage-chip-right"><span>Frequency</span><strong id="freqValue">-</strong></div>
-            <div class="stage-base"><i></i><i></i><i></i></div>
           </div>
 
           <aside class="network-runtime">
@@ -307,7 +317,7 @@
             <div class="runtime-list">
               <div><span>Bandwidth</span><strong id="bandwidthValue">-</strong></div>
               <div><span>Firmware</span><strong id="firmwareValue">-</strong></div>
-              <div><span>Privacy</span><strong>Local only</strong></div>
+              <div><span>Data path</span><strong>Local only</strong></div>
             </div>
           </aside>
         </div>
@@ -424,12 +434,12 @@
             <h2>Router SMS inbox</h2>
             <p>See the private messages Data Pulse used to build your usage history.</p>
           </div>
-          <button class="sms-toggle" id="smsToggle" type="button" aria-expanded="false" aria-controls="smsPanel">
-            <span id="smsToggleLabel">Show source SMS</span>
+          <button class="sms-toggle is-open" id="smsToggle" type="button" aria-expanded="true" aria-controls="smsPanel">
+            <span id="smsToggleLabel">Hide source SMS</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
         </div>
-        <div class="sms-panel hidden" id="smsPanel">
+        <div class="sms-panel" id="smsPanel">
           <div class="sms-privacy-note"><span class="privacy-lock">●</span> Local only — SMS content stays in this Chrome profile.</div>
           <div class="sms-list" id="smsList"></div>
           <p class="sms-empty hidden" id="smsEmpty">No readable SMS messages were returned by this router.</p>
