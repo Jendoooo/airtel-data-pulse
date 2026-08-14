@@ -2014,6 +2014,56 @@ body.provider-mtn .nav-item.active {
 
 .legend-estimate { background: repeating-linear-gradient(135deg, #94a3b8 0 3px, #e2e8f0 3px 6px); box-shadow: 0 0 0 3px rgba(148, 163, 184, .12); }
 
+.speed-test {
+  margin: 0 24px 24px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fbfcfe;
+}
+.speed-test-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; }
+.speed-test-header h3 { margin: 6px 0 5px; color: var(--ink); font-size: clamp(1.1rem, 2vw, 1.45rem); letter-spacing: -.025em; }
+.speed-test-header p { max-width: 620px; margin: 0; color: var(--muted); font-size: .76rem; line-height: 1.55; }
+.speed-test-action { flex: 0 0 auto; display: grid; justify-items: end; gap: 7px; }
+.speed-test-action > span { color: #7a8495; font-size: .64rem; font-weight: 750; }
+.speed-test-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition: transform .16s ease, opacity .16s ease, box-shadow .16s ease;
+}
+.speed-test-button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(226, 27, 45, .16); }
+.speed-test-button:disabled { cursor: wait; opacity: .68; transform: none; box-shadow: none; }
+.speed-test-button:focus-visible { outline: 3px solid rgba(37, 99, 235, .22); outline-offset: 3px; }
+.speed-progress { height: 3px; margin-top: 21px; overflow: hidden; border-radius: 999px; background: #e8ecf2; opacity: .65; }
+.speed-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .35s ease; }
+.speed-progress.is-running span { background: linear-gradient(90deg, var(--accent), #f59e0b, var(--accent)); background-size: 200% 100%; animation: speed-sweep 1.35s linear infinite; }
+@keyframes speed-sweep { to { background-position: -200% 0; } }
+.speed-status { margin: 8px 0 0; color: #7a8495; font-size: .66rem; }
+.speed-results { display: grid; grid-template-columns: minmax(360px, .85fr) minmax(340px, 1.15fr); gap: 28px; margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--line); }
+.speed-metrics { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; }
+.speed-metrics > div { min-width: 0; padding: 4px 18px; border-left: 1px solid var(--line); }
+.speed-metrics > div:first-child { padding-left: 0; border-left: 0; }
+.speed-metrics dt { color: #7a8495; font-size: .62rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.speed-metrics dd { display: flex; align-items: baseline; gap: 5px; margin: 8px 0 0; color: var(--ink); }
+.speed-metrics strong { font-size: clamp(1.55rem, 3vw, 2.35rem); line-height: 1; letter-spacing: -.055em; }
+.speed-metrics dd span { color: #7a8495; font-size: .67rem; font-weight: 750; }
+.speed-verdict { min-width: 0; }
+.speed-verdict h4 { margin: 7px 0 5px; color: var(--ink); font-size: 1rem; letter-spacing: -.015em; }
+.speed-verdict > p { margin: 0; color: var(--muted); font-size: .73rem; line-height: 1.55; }
+.speed-activities { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 13px; }
+.speed-activities span { padding: 6px 8px; border-radius: 6px; font-size: .62rem; font-weight: 780; }
+.speed-activities .is-ready { background: #eaf8f2; color: #08704d; }
+.speed-activities .is-limited { background: #f1f3f6; color: #707b8d; }
+.speed-footnote { margin: 18px 0 0; color: #8a94a5; font-size: .64rem; line-height: 1.5; }
+
 .logo-icon { width: 58px; border-radius: 9px; background: #344054; box-shadow: none; }
 .logo-icon svg { display: none; }
 .provider-wordmark { color: #fff; font-size: .78rem; font-weight: 850; letter-spacing: -.035em; }
@@ -2029,10 +2079,15 @@ body.provider-mtn .radio-values small { color: #7a5900; }
 
 body.provider-mtn .chart-mode.active { color: #7a5900; }
 body.provider-mtn .network-guide-grid strong span { color: #7a5900; }
+body.provider-mtn .speed-test-button { color: #171a21; background: #ffcc00; }
+body.provider-mtn .speed-test-button:hover { box-shadow: 0 8px 18px rgba(255, 204, 0, .2); }
+body.provider-mtn .speed-progress span { background: #d69e00; }
+body.provider-mtn .speed-progress.is-running span { background: linear-gradient(90deg, #d69e00, #ffcc00, #d69e00); background-size: 200% 100%; }
 
 @media (max-width: 980px) {
   .network-guide-grid { grid-template-columns: repeat(2, 1fr); }
   .chart-actions { justify-content: flex-start; }
+  .speed-results { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 680px) {
@@ -2042,4 +2097,17 @@ body.provider-mtn .network-guide-grid strong span { color: #7a5900; }
   .chart-mode-controls { flex: 1 1 auto; }
   .chart-mode { flex: 1; }
   .export-csv { width: 100%; }
+  .speed-test { margin: 0 18px 18px; padding: 18px; }
+  .speed-test-header { align-items: stretch; flex-direction: column; gap: 16px; }
+  .speed-test-action { justify-items: stretch; }
+  .speed-test-action > span { text-align: left; }
+  .speed-test-button { width: 100%; }
+  .speed-results { min-width: 0; gap: 22px; }
+  .speed-metrics > div { padding: 3px 10px; }
+  .speed-metrics strong { font-size: 1.55rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speed-progress.is-running span { animation: none; }
+  .speed-test-button { transition: none; }
 }

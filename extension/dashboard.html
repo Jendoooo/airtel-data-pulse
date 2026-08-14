@@ -347,6 +347,41 @@
           </div>
         </div>
 
+        <section class="speed-test" aria-labelledby="speedTestTitle">
+          <div class="speed-test-header">
+            <div>
+              <span class="eyebrow">Internet performance</span>
+              <h3 id="speedTestTitle">What can this connection handle?</h3>
+              <p>Run a point-in-time test against Cloudflare and translate the result into practical everyday use.</p>
+            </div>
+            <div class="speed-test-action">
+              <span>Uses about 13 MB</span>
+              <button class="speed-test-button" id="runSpeedTest" type="button">Run speed test</button>
+            </div>
+          </div>
+
+          <div class="speed-progress" id="speedProgress" aria-hidden="true">
+            <span id="speedProgressBar"></span>
+          </div>
+          <p class="speed-status" id="speedStatus" aria-live="polite">Not tested yet</p>
+
+          <div class="speed-results" id="speedResults">
+            <dl class="speed-metrics" aria-label="Latest speed test result">
+              <div><dt>Download</dt><dd><strong id="speedDownload">-</strong><span>Mbps</span></dd></div>
+              <div><dt>Upload</dt><dd><strong id="speedUpload">-</strong><span>Mbps</span></dd></div>
+              <div><dt>Latency</dt><dd><strong id="speedLatency">-</strong><span>ms</span></dd></div>
+            </dl>
+            <div class="speed-verdict">
+              <span class="console-label">Practical Nigerian household guide</span>
+              <h4 id="speedVerdict">Run the test for a practical verdict</h4>
+              <p id="speedVerdictNote">Results reflect this device, Wi-Fi conditions, and carrier congestion at the moment of testing.</p>
+              <div class="speed-activities" id="speedActivities" aria-label="Suitable activities"></div>
+            </div>
+          </div>
+
+          <p class="speed-footnote">The test is optional and never runs automatically. It measures the connection to Cloudflare's nearest edge; it is not an Airtel or MTN billing record.</p>
+        </section>
+
         <details class="network-guide" open>
           <summary>What these network terms mean</summary>
           <div class="network-guide-grid">

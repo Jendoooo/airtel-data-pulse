@@ -1,6 +1,6 @@
 {
   "name": "airtel-data-tracker",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Local-first Airtel and MTN router usage and renewal dashboard with a Chrome extension",
   "main": "server.js",
   "scripts": {

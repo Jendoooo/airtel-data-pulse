@@ -23,7 +23,7 @@ The extension opens the dashboard in a full browser tab. See [`extension/README.
 - **Overview:** latest reading, seven-day reported total, tracked total, average, daily/monthly chart tabs, gap detection, filters, CSV export, and usage history.
 - **Renewals:** bundle transactions, known spend, typical subscription interval, and an estimated next-renewal date inferred from dated SMS records.
 - **Messages:** the source SMS inbox used to build the history, with unreliable numeric sender labels shown as `Router service`.
-- **Network:** a secondary diagnostic view for signal quality, network type, band, RSRP, RSRQ, SINR, RSSI, bandwidth, uptime, firmware, and frequency when the router provides them, with plain-language explanations and practical ranges.
+- **Network:** signal and device diagnostics plus an optional speed test with download, upload, latency, and a practical suitability guide for messaging, calls, streaming, gaming, remote work, and shared households.
 - Airtel/MTN-aware colours and router-address presets.
 - Airtel/MTN provider badges and a system-native type stack that remains crisp without downloading fonts.
 - Lazy-loaded history tables and responsive layouts for smaller screens.
@@ -52,9 +52,12 @@ Network diagnostics are optional and firmware-dependent. Data Pulse tries both t
 - Usage history and source SMS remain in that Chrome profile.
 - SMS content is rendered as text and is not uploaded to a remote service.
 - Transaction identifiers are masked in the renewal table; the original message remains available only in the local Messages view.
+- The speed test never runs automatically. A run transfers about 13 MB of generated test data to Cloudflare's nearest edge and stores only the resulting measurements locally. Router credentials, SMS, and usage history are not included.
 - There is no analytics, hosted login, or required online account.
 
 Only use the remember-password option on a trusted computer. Never publish `.env`, router passwords, `data/usage.json`, or personal SMS exports.
+
+The activity guide uses practical thresholds informed by [Cloudflare's connection-quality methodology](https://developers.cloudflare.com/speed/aim/), [Netflix's streaming recommendations](https://help.netflix.com/en/node/306), and [Zoom's published call requirements](https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0060748). It is guidance rather than a promise: Wi-Fi interference, carrier congestion, server location, and time of day can change real-world performance.
 
 ## Mobile use
 

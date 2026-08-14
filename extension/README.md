@@ -19,7 +19,7 @@ On first use, choose **Airtel**, **MTN**, or **Other network**, confirm the rout
 - **Overview** keeps the main screen focused on reported totals, Daily/Monthly chart tabs in one workspace, missing-report estimates, filters, CSV export, and daily history.
 - **Renewals** identifies bundle transaction messages, calculates known spend, and estimates the typical interval and next renewal when at least two dated events exist.
 - **Messages** shows the source SMS inbox. Numeric sender values such as `0` or `1` are labelled `Router service`, and content is rendered safely as text.
-- **Network** is a compact secondary diagnostic view for radio and device health when the router exposes it. An included glossary explains RSRP, RSRQ, SINR, RSSI, band, frequency, and bandwidth.
+- **Network** combines radio and device health with an optional speed test. It reports download, upload, latency, and what the result should comfortably handle for common household activities. The included glossary explains RSRP, RSRQ, SINR, RSSI, band, frequency, and bandwidth.
 
 Renewal cadence is an inference from available SMS history, not a guarantee from Airtel or MTN. Transaction IDs are masked in the renewal table.
 
@@ -29,8 +29,9 @@ Missing daily reports are never treated as zero. Short gaps with reported readin
 
 - Credentials are sent directly to the router over the local network.
 - Usage history and source SMS are stored in `chrome.storage.local` for this Chrome profile.
-- No hosted account or remote API is required.
+- No hosted account is required, and router usage works without a remote API. Cloudflare is contacted only when you choose to run the optional speed test.
 - There is no analytics or background upload of router data.
+- The speed test is user-triggered, uses about 13 MB per run against Cloudflare's nearest edge, and stores only the result locally. It never sends router credentials, SMS, or usage history.
 - Use **Remember password on this device** only on a trusted computer.
 
 ## Router compatibility
@@ -46,7 +47,7 @@ If a router uses a different firmware API, the extension reports that it is unsu
 
 ## After updating the files
 
-If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.7.0`.
+If Chrome is already using this folder, open `chrome://extensions` and click **Reload** on Airtel Data Pulse. The current extension package version is `0.8.0`.
 
 ## Mobile note
 

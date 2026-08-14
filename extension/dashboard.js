@@ -16,6 +16,12 @@ let tableVisibleCount = 25;
 let autoRefreshEnabled = true;
 let routerPollTimer = null;
 const TABLE_PAGE_SIZE = 25;
+const SPEED_TEST_ORIGIN = 'https://speed.cloudflare.com/*';
+const SPEED_TEST_ENDPOINT = 'https://speed.cloudflare.com';
+const SPEED_TEST_DOWNLOAD_BYTES = 10_000_000;
+const SPEED_TEST_UPLOAD_BYTES = 2_000_000;
+const SPEED_TEST_WARMUP_BYTES = 250_000;
+let speedTestRunning = false;
 
 /* ============================================
    Utility
@@ -1132,6 +1138,183 @@ function renderTable() {
 }
 
 /* ============================================
+   Speed test
+   ============================================ */
+
+function medianNumber(values) {
+  const sorted = values.slice().sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function updateSpeedProgress(percent, message) {
+  const progress = document.getElementById('speedProgress');
+  const bar = document.getElementById('speedProgressBar');
+  progress.classList.toggle('is-running', percent > 0 && percent < 100);
+  progress.setAttribute('aria-hidden', String(percent <= 0));
+  bar.style.width = `${Math.max(0, Math.min(percent, 100))}%`;
+  document.getElementById('speedStatus').textContent = message;
+}
+
+async function requestSpeedTestPermission() {
+  const permission = { origins: [SPEED_TEST_ORIGIN] };
+  if (await chrome.permissions.contains(permission)) return true;
+  return chrome.permissions.request(permission);
+}
+
+async function timedSpeedRequest(url, options = {}) {
+  const startedAt = performance.now();
+  const response = await fetch(url, {
+    cache: 'no-store',
+    ...options,
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!response.ok) throw new Error(`Speed test server returned HTTP ${response.status}`);
+  await response.arrayBuffer();
+  return performance.now() - startedAt;
+}
+
+async function measureLatency() {
+  const samples = [];
+  for (let index = 0; index < 5; index += 1) {
+    const nonce = `${Date.now()}-${index}`;
+    samples.push(await timedSpeedRequest(`${SPEED_TEST_ENDPOINT}/__down?bytes=0&nonce=${nonce}`));
+  }
+  return medianNumber(samples);
+}
+
+async function measureDownload(latencyMs) {
+  await timedSpeedRequest(`${SPEED_TEST_ENDPOINT}/__down?bytes=${SPEED_TEST_WARMUP_BYTES}&nonce=${Date.now()}`);
+  const durationMs = await timedSpeedRequest(`${SPEED_TEST_ENDPOINT}/__down?bytes=${SPEED_TEST_DOWNLOAD_BYTES}&nonce=${Date.now()}`);
+  const transferMs = Math.max(durationMs - latencyMs, 1);
+  return (SPEED_TEST_DOWNLOAD_BYTES * 8) / (transferMs / 1000) / 1_000_000;
+}
+
+async function measureUpload(latencyMs) {
+  const payload = new Uint8Array(SPEED_TEST_UPLOAD_BYTES);
+  const durationMs = await timedSpeedRequest(`${SPEED_TEST_ENDPOINT}/__up?nonce=${Date.now()}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream' },
+    body: payload,
+  });
+  const transferMs = Math.max(durationMs - latencyMs, 1);
+  return (SPEED_TEST_UPLOAD_BYTES * 8) / (transferMs / 1000) / 1_000_000;
+}
+
+function getSpeedSuitability({ downloadMbps, uploadMbps, latencyMs }) {
+  let title;
+  let note;
+  if (downloadMbps >= 50 && uploadMbps >= 10 && latencyMs <= 100) {
+    title = 'Excellent for a busy home';
+    note = 'Comfortable for several phones and laptops, remote work, large downloads, video calls, and multiple high-quality streams.';
+  } else if (downloadMbps >= 25 && uploadMbps >= 5 && latencyMs <= 140) {
+    title = 'Strong for work and family use';
+    note = 'Well suited to remote work, online classes, HD calls, 4K streaming, and several people sharing the router.';
+  } else if (downloadMbps >= 10 && uploadMbps >= 3 && latencyMs <= 180) {
+    title = 'Good for everyday broadband';
+    note = 'A good fit for WhatsApp, social media, remote work, HD streaming, and one reliable video call at a time.';
+  } else if (downloadMbps >= 5 && uploadMbps >= 1.5 && latencyMs <= 220) {
+    title = 'Comfortable for one active user';
+    note = 'Browsing, social media, music, one HD stream, and standard video calls should work; several simultaneous users may feel slower.';
+  } else if (downloadMbps >= 2 && uploadMbps >= 0.5) {
+    title = 'Best for light use';
+    note = 'Good enough for WhatsApp, email, banking, browsing, and lower-quality video. HD calls and shared use may struggle.';
+  } else {
+    title = 'Limited right now';
+    note = 'Messaging and very light browsing may work, but streaming, calls, uploads, and multiple users are likely to be unreliable.';
+  }
+
+  if (latencyMs > 200) note += ' The high latency may cause a noticeable delay in calls and games.';
+  else if (uploadMbps < 3) note += ' Uploading files or sending HD video may be the main bottleneck.';
+
+  const activities = [
+    { label: 'WhatsApp & browsing', ready: downloadMbps >= 2 && uploadMbps >= 0.5 && latencyMs < 300 },
+    { label: 'HD video calls', ready: downloadMbps >= 3 && uploadMbps >= 3 && latencyMs < 180 },
+    { label: '1080p streaming', ready: downloadMbps >= 5 },
+    { label: '4K streaming', ready: downloadMbps >= 15 },
+    { label: 'Online gaming', ready: downloadMbps >= 10 && uploadMbps >= 3 && latencyMs < 80 },
+    { label: 'Several users', ready: downloadMbps >= 25 && uploadMbps >= 5 },
+  ];
+  return { title, note, activities };
+}
+
+function renderSpeedTestResult(result) {
+  if (!result) return;
+  document.getElementById('speedDownload').textContent = result.downloadMbps.toFixed(1);
+  document.getElementById('speedUpload').textContent = result.uploadMbps.toFixed(1);
+  document.getElementById('speedLatency').textContent = Math.round(result.latencyMs);
+
+  const suitability = getSpeedSuitability(result);
+  document.getElementById('speedVerdict').textContent = suitability.title;
+  document.getElementById('speedVerdictNote').textContent = suitability.note;
+  document.getElementById('speedActivities').replaceChildren(...suitability.activities.map((activity) => {
+    const item = document.createElement('span');
+    item.className = activity.ready ? 'is-ready' : 'is-limited';
+    item.textContent = `${activity.ready ? 'Ready' : 'Limited'} · ${activity.label}`;
+    return item;
+  }));
+
+  const testedAt = new Date(result.testedAt);
+  const testedLabel = Number.isNaN(testedAt.getTime())
+    ? 'Test complete'
+    : `Tested ${testedAt.toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`;
+  document.getElementById('speedStatus').textContent = `${testedLabel} · ${result.dataUsedMB.toFixed(1)} MB used`;
+}
+
+async function loadSavedSpeedTest() {
+  const stored = await chrome.storage.local.get(['speedTestResult']);
+  if (stored.speedTestResult) renderSpeedTestResult(stored.speedTestResult);
+}
+
+async function runSpeedTest() {
+  if (speedTestRunning) return;
+  const button = document.getElementById('runSpeedTest');
+  speedTestRunning = true;
+  button.disabled = true;
+  button.textContent = 'Testing…';
+  document.getElementById('speedDownload').textContent = '-';
+  document.getElementById('speedUpload').textContent = '-';
+  document.getElementById('speedLatency').textContent = '-';
+
+  try {
+    updateSpeedProgress(5, 'Waiting for speed-test permission…');
+    const granted = await requestSpeedTestPermission();
+    if (!granted) throw new Error('Cloudflare access was not granted. The test was not run.');
+
+    updateSpeedProgress(18, 'Measuring latency…');
+    const latencyMs = await measureLatency();
+    document.getElementById('speedLatency').textContent = Math.round(latencyMs);
+
+    updateSpeedProgress(42, 'Measuring download speed…');
+    const downloadMbps = await measureDownload(latencyMs);
+    document.getElementById('speedDownload').textContent = downloadMbps.toFixed(1);
+
+    updateSpeedProgress(76, 'Measuring upload speed…');
+    const uploadMbps = await measureUpload(latencyMs);
+    document.getElementById('speedUpload').textContent = uploadMbps.toFixed(1);
+
+    const result = {
+      downloadMbps,
+      uploadMbps,
+      latencyMs,
+      dataUsedMB: (SPEED_TEST_WARMUP_BYTES + SPEED_TEST_DOWNLOAD_BYTES + SPEED_TEST_UPLOAD_BYTES) / 1_000_000,
+      testedAt: new Date().toISOString(),
+    };
+    renderSpeedTestResult(result);
+    await chrome.storage.local.set({ speedTestResult: result });
+    updateSpeedProgress(100, document.getElementById('speedStatus').textContent);
+  } catch (error) {
+    updateSpeedProgress(0, error.name === 'TimeoutError'
+      ? 'The test timed out. Check the internet connection and try again.'
+      : error.message || 'The speed test could not be completed.');
+  } finally {
+    speedTestRunning = false;
+    button.disabled = false;
+    button.textContent = 'Run again';
+  }
+}
+
+/* ============================================
    Controls
    ============================================ */
 
@@ -1149,6 +1332,9 @@ function bindControls() {
   const smsToggle = document.getElementById('smsToggle');
   const smsPanel = document.getElementById('smsPanel');
   const exportCsv = document.getElementById('exportCsv');
+  const runSpeedTestButton = document.getElementById('runSpeedTest');
+
+  runSpeedTestButton.addEventListener('click', runSpeedTest);
 
   providerSelect.addEventListener('change', () => {
     if (!hostInput.value || ['192.168.1.1', '192.168.0.1'].includes(hostInput.value.trim())) {
@@ -1282,5 +1468,6 @@ document.addEventListener('DOMContentLoaded', () => {
   bindNavigation();
   bindControls();
   fetchUsageData();
+  loadSavedSpeedTest();
   routerPollTimer = setInterval(refreshRouterStatusOnly, 30000);
 });
