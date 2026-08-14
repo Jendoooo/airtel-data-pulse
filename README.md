@@ -1,6 +1,6 @@
 # Airtel Data Pulse
 
-A privacy-first dashboard for turning daily data-usage SMS messages from a compatible ZLT/Airtel router into a clean usage history, chart, and signal-health view.
+A privacy-first dashboard for turning daily data-usage SMS messages from a compatible mobile router into a clean usage history, chart, and signal-health view.
 
 The project has two modes:
 
@@ -43,7 +43,7 @@ The carrier preset is not a hard-coded router promise: MTN and Airtel use multip
 
 ### 1. Connect to the router
 
-Join the Airtel/ZLT router’s Wi-Fi from the computer that will run the dashboard. The computer and router must be on the same local network.
+Join the Airtel, MTN, or compatible router’s Wi-Fi from the computer that will run the dashboard. The computer and router must be on the same local network.
 
 ### 2. Install the project
 
@@ -72,6 +72,7 @@ nano .env
 Fill in the router values in `.env`:
 
 ```env
+ROUTER_PROVIDER=auto
 ROUTER_HOST=192.168.1.1
 ROUTER_USERNAME=admin
 ROUTER_PASSWORD=your-router-password
@@ -80,6 +81,8 @@ PORT=3456
 ```
 
 Use the router’s real admin password. Do not commit `.env`, and do not paste its contents into an issue or public post.
+
+For MTN, set `ROUTER_PROVIDER=mtn` and usually use `ROUTER_HOST=192.168.0.1`. For Airtel, try `192.168.1.1` or `192.168.0.1`. The provider label does not guarantee a firmware match; the current adapter still targets the supported ZLT/ZTE CGI + SMS interface.
 
 ### 4. Start the local dashboard
 

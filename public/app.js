@@ -166,7 +166,7 @@ async function fetchUsageData() {
 
     if (result.routerConnected) {
       status.classList.add('connected');
-      status.querySelector('span').textContent = 'Router connected';
+      status.querySelector('span').textContent = `${result.provider || 'Router'} connected`;
       cacheNotice.classList.add('hidden');
     } else {
       status.classList.add('connected');

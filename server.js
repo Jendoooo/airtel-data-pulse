@@ -12,12 +12,20 @@ const app = express();
 const PORT = Number(process.env.PORT || 3456);
 const BIND_HOST = process.env.BIND_HOST || '127.0.0.1';
 const IS_HOSTED = process.env.VERCEL === '1';
+const ROUTER_PROVIDER = ['auto', 'airtel', 'mtn', 'other'].includes(process.env.ROUTER_PROVIDER)
+  ? process.env.ROUTER_PROVIDER
+  : 'auto';
+const DEFAULT_ROUTER_HOST = ROUTER_PROVIDER === 'mtn' ? '192.168.0.1' : '192.168.1.1';
 
 // Router config is intentionally environment-only. Never commit router credentials.
-const ROUTER_HOST = process.env.ROUTER_HOST || '';
+const ROUTER_HOST = process.env.ROUTER_HOST || DEFAULT_ROUTER_HOST;
 const ROUTER_USERNAME = process.env.ROUTER_USERNAME || '';
 const ROUTER_PASSWORD = process.env.ROUTER_PASSWORD || '';
 const ROUTER_CONFIGURED = Boolean(ROUTER_HOST && ROUTER_USERNAME && ROUTER_PASSWORD);
+
+function providerLabel() {
+  return { airtel: 'Airtel', mtn: 'MTN', other: 'Other network', auto: 'Auto-detected network' }[ROUTER_PROVIDER];
+}
 
 // Known router command UUIDs (ZLT X17U firmware)
 const CMD_INIT_CONFIG = '9f2861ee-baf8-4038-bab6-774ad4e930b0';
@@ -448,6 +456,7 @@ app.get('/api/usage', async (req, res) => {
       totalSyncs: store.totalSyncs,
       hosted: IS_HOSTED,
       source: routerConnected ? 'router' : (usingDemoData() ? 'demo-snapshot' : 'saved-snapshot'),
+      provider: providerLabel(),
     });
   } catch (error) {
     console.error('[API] Error:', error.message);
@@ -464,6 +473,7 @@ app.get('/api/usage', async (req, res) => {
         cached: true,
         hosted: IS_HOSTED,
         source: usingDemoData() ? 'demo-snapshot' : 'saved-snapshot',
+        provider: providerLabel(),
       });
     }
 
@@ -545,6 +555,7 @@ app.get('/api/health', (req, res) => {
     service: 'airtel-data-tracker',
     hosted: IS_HOSTED,
     routerAccess: IS_HOSTED ? 'private-network-unavailable' : (ROUTER_CONFIGURED ? 'local-network-enabled' : 'not-configured'),
+    provider: providerLabel(),
   });
 });
 
