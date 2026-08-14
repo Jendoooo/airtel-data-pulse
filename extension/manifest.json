@@ -4,8 +4,7 @@
   "version": "0.1.0",
   "description": "A private, simple view of daily Airtel router data usage.",
   "action": {
-    "default_title": "Open Airtel Data Pulse",
-    "default_popup": "popup.html"
+    "default_title": "Open Airtel Data Pulse"
   },
   "background": {
     "service_worker": "background.js",

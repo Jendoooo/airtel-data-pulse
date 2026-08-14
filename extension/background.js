@@ -1,5 +1,6 @@
 const DEFAULT_HOST = '192.168.1.1';
 const sessions = new Map();
+const STATUS_COMMAND = '7c6906a3-f7de-4795-a17e-ef032ffacda4';
 
 function cleanHost(value) {
   const raw = String(value || DEFAULT_HOST).trim().replace(/^https?:\/\//i, '').split('/')[0];
@@ -162,12 +163,102 @@ async function syncUsage(settings) {
   return snapshot;
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message?.type !== 'sync') return undefined;
+function normalizeMetric(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : value;
+}
 
-  syncUsage(message.settings)
-    .then((snapshot) => sendResponse({ success: true, snapshot }))
+function signalRating(status) {
+  const sinr = typeof status.sinr === 'number' ? status.sinr : null;
+  const rsrq = typeof status.rsrq === 'number' ? status.rsrq : null;
+  const rsrp = typeof status.rsrp === 'number' ? status.rsrp : null;
+  if (sinr !== null && rsrq !== null) {
+    if (sinr >= 10 && rsrq >= -10) return 'Excellent';
+    if (sinr >= 3 && rsrq >= -13) return 'Good';
+    if (sinr >= 0 && rsrq >= -16) return 'Fair';
+    return 'Poor';
+  }
+  if (rsrp !== null) return rsrp >= -80 ? 'Good' : rsrp >= -95 ? 'Fair' : 'Poor';
+  return 'Unknown';
+}
+
+function normalizeStatus(payload) {
+  const status = {
+    networkType: payload.network_type_str || null,
+    sinr: normalizeMetric(payload.SINR),
+    rsrp: normalizeMetric(payload.RSRP),
+    rsrq: normalizeMetric(payload.RSRQ),
+    rssi: normalizeMetric(payload.RSSI),
+    freq: normalizeMetric(payload.FREQ),
+    currentBand: payload.currentband || null,
+    bandwidth: payload.bandwidth || null,
+    uptime: payload.uptime || null,
+    firmwareVersion: payload.fake_version || null,
+  };
+  status.signalRating = signalRating(status);
+  return status;
+}
+
+async function readStatus(settings) {
+  const host = cleanHost(settings.host);
+  const sessionId = await getSession(host, settings.username, settings.password);
+  const response = await routerRequest(host, {
+    cmd: STATUS_COMMAND,
+    method: 'GET',
+    sessionId,
+  });
+  if (!response.success) throw new Error('The router did not return signal health');
+  return normalizeStatus(response);
+}
+
+async function dashboardData(settings) {
+  const host = cleanHost(settings.host);
+  const usage = await readUsage({ ...settings, host });
+  let status = null;
+  try {
+    status = await readStatus({ ...settings, host });
+  } catch {
+    // Usage remains useful when this router firmware does not expose radio health.
+  }
+  const snapshot = { usage, lastSync: new Date().toISOString() };
+  await chrome.storage.local.set({
+    snapshot,
+    settings: {
+      host,
+      username: settings.username,
+      password: settings.rememberPassword ? settings.password : '',
+      rememberPassword: Boolean(settings.rememberPassword),
+    },
+  });
+  return {
+    success: true,
+    data: usage,
+    routerConnected: true,
+    routerStatus: status,
+    fetchedAt: status ? new Date().toISOString() : null,
+    lastSync: snapshot.lastSync,
+    hosted: false,
+    source: 'local-extension',
+  };
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!['sync', 'dashboard-data', 'router-status'].includes(message?.type)) return undefined;
+
+  const task = message.type === 'sync'
+    ? syncUsage(message.settings).then((snapshot) => ({ success: true, snapshot }))
+    : message.type === 'dashboard-data'
+      ? dashboardData(message.settings)
+      : readStatus(message.settings).then((data) => ({ success: true, data, fetchedAt: new Date().toISOString() }));
+
+  task
+    .then((result) => sendResponse(result))
     .catch((error) => sendResponse({ success: false, error: error.message || 'Could not read the router' }));
 
   return true;
+});
+
+chrome.action.onClicked.addListener(async () => {
+  await chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') });
 });

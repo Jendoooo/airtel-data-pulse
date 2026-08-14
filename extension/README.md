@@ -1,6 +1,6 @@
 # Airtel Data Pulse Chrome extension
 
-This is the easiest version for ordinary Chrome users: connect to the Airtel/ZLT router Wi-Fi, open the extension, enter the router login once, and view the usage history.
+This is the easiest version for ordinary Chrome users: connect to the Airtel/ZLT router Wi-Fi, click the extension icon, enter the router login once, and get the full Data Pulse dashboard in a browser tab.
 
 ## Install for testing
 
@@ -10,9 +10,9 @@ This is the easiest version for ordinary Chrome users: connect to the Airtel/ZLT
 4. Choose **Load unpacked**.
 5. Select this `extension` folder.
 6. Pin **Airtel Data Pulse** to the Chrome toolbar.
-7. Connect to the router Wi-Fi and click the extension icon.
+7. Connect to the router Wi-Fi and click the extension icon. It opens the full dashboard in a new tab.
 
-The first connection asks Chrome for permission to talk to the router’s local address. The extension then performs the router login and reads the SMS inbox directly. It does not use the public Vercel deployment for router access.
+The first connection asks Chrome for permission to talk to the router’s local address. The extension then performs the router login and reads the SMS inbox and safe radio-health metrics directly. It does not use the public Vercel deployment for router access.
 
 ## Privacy model
 

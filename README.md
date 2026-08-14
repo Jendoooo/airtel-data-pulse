@@ -33,7 +33,7 @@ The repository includes a Chrome extension in [`extension/`](extension/). This i
 2. Connect Chrome to the Airtel/ZLT router Wi-Fi.
 3. Click the **Airtel Data Pulse** icon.
 4. Enter the router address, username, and password.
-5. View the usage history directly in the extension.
+5. View the full dashboard in a new Chrome tab: summary cards, chart, router health, filters, and usage history.
 
 The extension talks directly to the router and keeps the credentials/history inside that Chrome profile. It does not send live router data through Vercel. See [`extension/README.md`](extension/README.md) for testing installation; a Chrome Web Store release would make the final installation one click.
 
