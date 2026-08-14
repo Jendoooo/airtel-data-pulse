@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "server.js": {
+      "includeFiles": "data/usage.example.json"
+    }
+  },
+  "headers": [
+    {
+      "source": "/data/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=300" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    }
+  ]
+}

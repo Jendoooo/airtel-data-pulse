@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Pulse · Privacy-first dashboard</title>
+  <meta name="description" content="A privacy-first dashboard for daily mobile broadband usage and router health.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>A</text></svg>">
+  <meta name="theme-color" content="#f8fafc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <div class="ambient-bg">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+
+    <header class="header" id="header">
+      <div class="header-left">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          </div>
+          <div class="logo-text">
+            <h1>Data Pulse</h1>
+            <span class="logo-sub">Mobile broadband · local-first</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="refresh-btn" id="refreshBtn" type="button" data-action="refresh" aria-label="Refresh usage data">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          <span>Sync now</span>
+        </button>
+        <div class="connection-status" id="connectionStatus" aria-live="polite">
+          <div class="status-dot"></div>
+          <span>Connecting...</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="loading-screen" id="loadingScreen">
+      <div class="loader">
+        <div class="loader-ring"></div>
+        <div class="loader-text">Fetching data from router...</div>
+      </div>
+    </div>
+
+    <div class="error-screen hidden" id="errorScreen">
+      <div class="error-content">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <h2>Unable to connect</h2>
+        <p id="errorMessage">Make sure the server is running and try again.</p>
+        <button class="retry-btn" type="button" data-action="refresh">Try again</button>
+      </div>
+    </div>
+
+    <main class="dashboard hidden" id="dashboard">
+      <div class="cache-notice hidden" id="cacheNotice">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span><strong id="cacheNoticeLabel">Saved snapshot</strong> · live router reads work from the local Wi‑Fi dashboard · last sync: <strong id="lastSyncTime">-</strong></span>
+      </div>
+
+      <section class="brief-strip">
+        <div class="brief-copy">
+          <span class="eyebrow">Usage pulse</span>
+          <h2 id="briefHeadline">Your data, at a glance</h2>
+          <p id="briefText">Latest usage, tracked history, and live router health in one calm view.</p>
+        </div>
+        <div class="brief-actions">
+          <label class="toggle" for="autoRefreshToggle">
+            <input type="checkbox" id="autoRefreshToggle" checked>
+            <span class="toggle-ui"></span>
+            <span class="toggle-label">Auto refresh live health</span>
+          </label>
+          <div class="brief-meta privacy-meta">
+            <span>Privacy mode</span>
+            <strong>Identifiers hidden</strong>
+          </div>
+          <div class="brief-meta">
+            <span>Live poll</span>
+            <strong id="livePollStatus">Every 30s</strong>
+          </div>
+          <div class="brief-meta">
+            <span>Last router check</span>
+            <strong id="routerCheckTime">-</strong>
+          </div>
+          <div class="brief-meta">
+            <span>Data freshness</span>
+            <strong id="dataFreshness">-</strong>
+          </div>
+          <div class="brief-meta">
+            <span>History window</span>
+            <strong id="historyWindow">-</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats-grid" id="statsGrid">
+        <div class="stat-card stat-today">
+          <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <span class="stat-label" id="latestLabel">Latest reading</span>
+            <span class="stat-value" id="todayUsage">-</span>
+            <span class="stat-sub" id="todayDate">-</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-week">
+          <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <span class="stat-label">Last 7 Days</span>
+            <span class="stat-value" id="weekUsage">-</span>
+            <span class="stat-sub" id="weekAvg">-</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-month">
+          <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <span class="stat-label">Tracked Total</span>
+            <span class="stat-value" id="monthUsage">-</span>
+            <span class="stat-sub" id="monthDays">-</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-avg">
+          <div class="stat-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <span class="stat-label">Daily Average</span>
+            <span class="stat-value" id="avgUsage">-</span>
+            <span class="stat-sub" id="avgPeriod">-</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="highlight-row">
+        <div class="highlight-card peak">
+          <div class="highlight-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            Peak Day
+          </div>
+          <div class="highlight-value" id="peakValue">-</div>
+          <div class="highlight-date" id="peakDate">-</div>
+        </div>
+        <div class="highlight-card low">
+          <div class="highlight-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+            Lowest Day
+          </div>
+          <div class="highlight-value" id="lowValue">-</div>
+          <div class="highlight-date" id="lowDate">-</div>
+        </div>
+        <div class="highlight-card streak">
+          <div class="highlight-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Days Tracked
+          </div>
+          <div class="highlight-value" id="streakValue">-</div>
+          <div class="highlight-date" id="streakDate">-</div>
+        </div>
+      </section>
+
+      <section class="router-section">
+        <div class="router-section-header">
+          <div>
+            <h2>Live Router Health</h2>
+            <p>Local-only radio metrics. Personal router and subscriber identifiers stay hidden.</p>
+          </div>
+          <div class="router-health-pill" id="routerHealthPill" aria-live="polite">Checking...</div>
+        </div>
+
+        <div class="router-grid">
+          <div class="router-card router-card-primary">
+            <span class="router-label">Signal Quality</span>
+            <div class="router-value" id="signalRating">-</div>
+            <div class="router-sub" id="signalSummary">Waiting for router response</div>
+          </div>
+
+          <div class="router-card">
+            <span class="router-label">Network Type</span>
+            <div class="router-value" id="networkType">-</div>
+            <div class="router-sub" id="currentBand">-</div>
+          </div>
+
+          <div class="router-card">
+            <span class="router-label">RSRP</span>
+            <div class="router-value" id="rsrpValue">-</div>
+            <div class="router-sub">Reference signal power</div>
+          </div>
+
+          <div class="router-card">
+            <span class="router-label">RSRQ</span>
+            <div class="router-value" id="rsrqValue">-</div>
+            <div class="router-sub">Signal quality</div>
+          </div>
+
+          <div class="router-card">
+            <span class="router-label">SINR</span>
+            <div class="router-value" id="sinrValue">-</div>
+            <div class="router-sub">Interference ratio</div>
+          </div>
+
+          <div class="router-card">
+            <span class="router-label">RSSI</span>
+            <div class="router-value" id="rssiValue">-</div>
+            <div class="router-sub">Received signal strength</div>
+          </div>
+        </div>
+
+        <div class="signal-meters">
+          <div class="signal-meter">
+            <div class="signal-meter-head">
+              <span>RSRP</span>
+              <strong id="rsrpMeterLabel">-</strong>
+            </div>
+            <div class="signal-track"><div class="signal-fill" id="rsrpMeter"></div></div>
+          </div>
+          <div class="signal-meter">
+            <div class="signal-meter-head">
+              <span>RSRQ</span>
+              <strong id="rsrqMeterLabel">-</strong>
+            </div>
+            <div class="signal-track"><div class="signal-fill" id="rsrqMeter"></div></div>
+          </div>
+          <div class="signal-meter">
+            <div class="signal-meter-head">
+              <span>SINR</span>
+              <strong id="sinrMeterLabel">-</strong>
+            </div>
+            <div class="signal-track"><div class="signal-fill" id="sinrMeter"></div></div>
+          </div>
+        </div>
+
+        <div class="router-details">
+          <div class="router-detail">
+            <span class="detail-label">Bandwidth</span>
+            <span class="detail-value" id="bandwidthValue">-</span>
+          </div>
+          <div class="router-detail">
+            <span class="detail-label">Uptime</span>
+            <span class="detail-value" id="uptimeValue">-</span>
+          </div>
+          <div class="router-detail">
+            <span class="detail-label">Firmware</span>
+            <span class="detail-value" id="firmwareValue">-</span>
+          </div>
+          <div class="router-detail">
+            <span class="detail-label">Frequency</span>
+            <span class="detail-value" id="freqValue">-</span>
+          </div>
+          <div class="router-detail">
+            <span class="detail-label">Data policy</span>
+            <span class="detail-value">No identifiers returned</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="chart-section">
+        <div class="chart-header">
+          <h2>Daily Data Usage</h2>
+          <div class="chart-controls">
+            <button class="chart-range active" type="button" data-range="7">7D</button>
+            <button class="chart-range" type="button" data-range="14">14D</button>
+            <button class="chart-range" type="button" data-range="30">30D</button>
+            <button class="chart-range" type="button" data-range="9999">All</button>
+          </div>
+        </div>
+        <div class="chart-container" id="chartContainer">
+          <canvas id="usageChart"></canvas>
+          <div class="chart-tooltip hidden" id="chartTooltip">
+            <div class="tooltip-date" id="tooltipDate"></div>
+            <div class="tooltip-value" id="tooltipValue"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="table-section">
+        <div class="table-header">
+          <div>
+            <h2>Usage History</h2>
+            <span class="table-count" id="tableCount" aria-live="polite">0 records</span>
+          </div>
+          <div class="table-tools">
+            <label class="filter-field filter-search">
+              <span>Search</span>
+              <input class="table-search" id="tableSearch" type="search" placeholder="Date or day">
+            </label>
+            <label class="filter-field">
+              <span>From</span>
+              <input class="date-filter" id="tableFromDate" type="date" aria-label="From date">
+            </label>
+            <label class="filter-field">
+              <span>To</span>
+              <input class="date-filter" id="tableToDate" type="date" aria-label="To date">
+            </label>
+            <label class="filter-field">
+              <span>Sort</span>
+              <select class="table-sort" id="tableSort" aria-label="Sort usage history">
+                <option value="recent">Most recent</option>
+                <option value="highest">Highest usage</option>
+                <option value="lowest">Lowest usage</option>
+              </select>
+            </label>
+            <button class="clear-filters" id="clearFilters" type="button">Clear</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="usage-table" id="usageTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Day</th>
+                <th>Usage</th>
+                <th>vs Average</th>
+                <th>Trend</th>
+              </tr>
+            </thead>
+            <tbody id="usageTableBody"></tbody>
+          </table>
+          <div class="empty-table hidden" id="emptyTableState">No usage rows match this filter.</div>
+          <div class="table-footer">
+            <span id="tableSummary">Showing 0 records</span>
+            <button class="load-more hidden" id="loadMoreRows" type="button">Load more rows</button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>Local Wi‑Fi sync reads compatible router SMS; hosted mode serves synthetic demo data.</p>
+        <p class="footer-time">Last updated: <span id="lastUpdate">-</span></p>
+      </footer>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

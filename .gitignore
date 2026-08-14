@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+
+.vercel
+data/usage.json
+data/*.private.json
+.env.*
+!.env.example
+NETWORK_AUDIT_*.md
+router-index.js
+.playwright-mcp/

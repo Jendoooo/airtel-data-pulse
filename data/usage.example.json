@@ -1,0 +1,14 @@
+{
+  "usage": [
+    { "date": "2026-08-01", "usageMB": 18432.0 },
+    { "date": "2026-08-02", "usageMB": 9216.0 },
+    { "date": "2026-08-03", "usageMB": 27648.0 },
+    { "date": "2026-08-04", "usageMB": 12288.0 },
+    { "date": "2026-08-05", "usageMB": 20480.0 },
+    { "date": "2026-08-06", "usageMB": 30720.0 },
+    { "date": "2026-08-07", "usageMB": 15360.0 }
+  ],
+  "lastSync": "2026-08-08T08:00:00.000Z",
+  "totalSyncs": 0,
+  "source": "synthetic-demo-data"
+}

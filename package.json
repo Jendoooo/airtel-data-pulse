@@ -1,0 +1,17 @@
+{
+  "name": "airtel-data-tracker",
+  "version": "1.0.0",
+  "description": "Airtel NG Data Usage Dashboard - pulls SMS from router",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "sync": "node scripts/sync-and-push.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.21.0",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0"
+  }
+}
